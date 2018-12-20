@@ -23,7 +23,8 @@
   "dependencies": {
     "@atomist/automation-client": "^1.1.0",
     "@atomist/sdm": "^1.1.0",
-    "@atomist/sdm-core": "^1.1.0"
+    "@atomist/sdm-core": "^1.1.0",
+    "@atomist/sdm-pack-spring": "^1.1.1-java9.20181219060103"
   },
   "devDependencies": {
     "@atomist/sdm-local": "^1.0.3",

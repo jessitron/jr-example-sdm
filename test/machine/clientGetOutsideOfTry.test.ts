@@ -84,6 +84,11 @@ describe("inspectClientGetOutsideOfTry", () => {
     it("does care about call to client.get", async () => {
         const p = InMemoryProject.of({ path: "src/main/Something.java", content: OffendingJavaFile });
         const result = await inspectClientGetOutsideOfTry(p, undefined);
-        assert.deepEqual(result, [{ filePath: "src/main/Something.java" }]);
+        assert.deepEqual(result, [{
+            path: 'src/main/Something.java',
+            lineFrom1: 20,
+            columnFrom1: 27,
+            offset: 581
+        }]);
     });
 });
