@@ -2,10 +2,10 @@
   <img src="https://images.atomist.com/sdm/SDM-Logo-Dark.png">
 </p>
 
-# @atomist-seeds/empty-sdm
+# @atomist/java-refactor-demo-sdm
 
-[![atomist sdm goals](http://badge.atomist.com/T29E48P34/atomist-seeds/empty-sdm/c796f715-67c3-48ae-8b7c-45c0fd31443f)](https://app.atomist.com/workspace/T29E48P34)
-[![npm version](https://img.shields.io/npm/v/@atomist-seeds/empty-sdm.svg)](https://www.npmjs.com/package/@atomist-seeds/empty-sdm)
+[![atomist sdm goals](http://badge.atomist.com/T29E48P34/atomist/java-refactor-demo-sdm/c796f715-67c3-48ae-8b7c-45c0fd31443f)](https://app.atomist.com/workspace/T29E48P34)
+[![npm version](https://img.shields.io/npm/v/@atomist/java-refactor-demo-sdm.svg)](https://www.npmjs.com/package/@atomist/java-refactor-demo-sdm)
 
 The simplest possible [Atomist][atomist] software delivery machine
 (SDM).
@@ -61,7 +61,7 @@ channel in the [Atomist community Slack workspace][slack].
 
 If you find a problem, please create an [issue][].
 
-[issue]: https://github.com/atomist-seeds/empty-sdm/issues
+[issue]: https://github.com/atomist/java-refactor-demo-sdm/issues
 
 ## Development
 

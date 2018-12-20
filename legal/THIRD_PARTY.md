@@ -1,8 +1,8 @@
-# `@atomist-seeds/empty-sdm`
+# `@atomist/java-refactor-demo-sdm`
 
-`@atomist-seeds/empty-sdm` is licensed under Apache License 2.0 - [http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0).
+`@atomist/java-refactor-demo-sdm` is licensed under Apache License 2.0 - [http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0).
 
-This page details all runtime OSS dependencies of `@atomist-seeds/empty-sdm`.
+This page details all runtime OSS dependencies of `@atomist/java-refactor-demo-sdm`.
 
 ## Licenses
 

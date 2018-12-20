@@ -64,7 +64,7 @@ spec:
       serviceAccountName: sdm-serviceaccount
       containers:
       - name: empty-sdm
-        image: atomist-seeds/empty-sdm:1.0.0
+        image: atomist/java-refactor-demo-sdm:1.0.0
         imagePullPolicy: IfNotPresent
         env:
         - name: ATOMIST_DEPLOYMENT_NAME
