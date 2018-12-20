@@ -17,10 +17,12 @@
 import {
     SoftwareDeliveryMachine,
     SoftwareDeliveryMachineConfiguration,
+    AutoCodeInspection,
 } from "@atomist/sdm";
 import {
     createSoftwareDeliveryMachine,
 } from "@atomist/sdm-core";
+import { inspectClientGetOutsideOfTry } from "./clientGetOutsideOfTry";
 
 /**
  * Initialize an sdm definition, and add functionality to it.
@@ -35,6 +37,12 @@ export function machine(
         name: "Empty Seed Software Delivery Machine",
         configuration,
     });
+
+    const codeInspect = new AutoCodeInspection();
+    codeInspect.with({
+        name: "no client.get outside of try/catch ",
+        inspection: inspectClientGetOutsideOfTry,
+    })
 
     /*
      * this is a good place to type
