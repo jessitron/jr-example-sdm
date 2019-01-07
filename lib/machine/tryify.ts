@@ -21,11 +21,10 @@ export function targetBuilder(methodCall: string): Microgrammar<{ methodCall: st
 }
 
 export function tryFinally(): Microgrammar<{ tryBlock: string, finallyBlock: string }> {
-    return Microgrammar.fromString("try { $tryBlock } finally { $finallyBlock }", {
+    return Microgrammar.fromDefinitions({
         try: "try {",
         tryBlock: takeUntil("}"),
-        catch: zeroOrMore(Microgrammar.fromString("} catch ($catchClause) {")),
-        catchClause: takeUntil(")"),
+        catch: zeroOrMore(Microgrammar.fromString("} catch (...) {")),
         finally: "} finally {",
         finallyBlock: takeUntil("}"),
         end: "}",
