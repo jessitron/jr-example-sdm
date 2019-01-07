@@ -1,4 +1,4 @@
-import { targetBuilder, tryFinally } from "../../lib/machine/tryify";
+import { JavaBlock, targetBuilder, tryFinally } from "../../lib/machine/tryify";
 import * as assert from "assert";
 
 describe("tryify", () => {
@@ -37,6 +37,18 @@ describe("tryify", () => {
     });
 
     describe("The grammar to find try-finally", () => {
+
+        it("Should recognize a block", () => {
+            const input = `// blah blah
+            try {
+                response = client.get();
+            } finally {
+                response.close();
+            }`;
+            const result = JavaBlock.findMatches(input);
+            assert.strictEqual(result.length, 2);
+        });
+
         it("Should match a try/finally with no catch", () => {
             const input = `// blah blah
             try {
@@ -45,9 +57,8 @@ describe("tryify", () => {
                 response.close();
             }`;
             const result = tryFinally().findMatches(input);
-
             assert.strictEqual(result.length, 1);
-        })
+        });
 
         it("Should find a try/catch/finally", () => {
             const input = `// blah blah
@@ -59,9 +70,8 @@ describe("tryify", () => {
                 response.close();
             }`;
             const result = tryFinally().findMatches(input);
-
             assert.strictEqual(result.length, 1);
-        })
-    })
+        });
+    });
 
 });

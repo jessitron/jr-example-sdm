@@ -44,7 +44,7 @@ export function machine(
     codeInspect.with({
         name: "no client.get outside of try/catch ",
         inspection: inspectClientGetOutsideOfTry,
-    })
+    });
 
     sdm.withPushRules(onAnyPush().setGoals(goals("stuff").plan(codeInspect))
 

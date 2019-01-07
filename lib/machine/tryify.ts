@@ -1,5 +1,5 @@
 import { CodeTransform } from "@atomist/sdm";
-import { Microgrammar, takeUntil, zeroOrMore } from "@atomist/microgrammar";
+import { Microgrammar, takeUntil, zeroOrMore, Concat } from "@atomist/microgrammar";
 
 /**
  * Match a call of the form
@@ -20,14 +20,27 @@ export function targetBuilder(methodCall: string): Microgrammar<{ methodCall: st
     });
 }
 
+// TODO try to be compatible with microgrammar JavaBlock
+export const JavaBlock = Microgrammar.fromDefinitions<{content: string}>({
+    _lpar: "{",
+    content: takeUntil("}"),
+    _rpar: "}",
+});
+
 export function tryFinally(): Microgrammar<{ tryBlock: string, finallyBlock: string }> {
-    return Microgrammar.fromDefinitions({
-        try: "try {",
-        tryBlock: takeUntil("}"),
-        catch: zeroOrMore(Microgrammar.fromString("} catch (...) {")),
-        finally: "} finally {",
-        finallyBlock: takeUntil("}"),
-        end: "}",
+    // return Microgrammar.fromString("try ${tryBlock} finally ${finallyBlock}", {
+    //     tryBlock: JavaBlock,
+    //     //catch: zeroOrMore(Microgrammar.fromString("} catch ($catchClause) {")),
+    //     //catchClause: takeUntil(")"),
+    //     finallyBlock: JavaBlock,
+    // });
+    return Microgrammar.fromDefinitions( {
+        _try: "try",
+        tryBlock: JavaBlock,
+        _finally: "finally",
+        //catch: zeroOrMore(Microgrammar.fromString("} catch ($catchClause) {")),
+        //catchClause: takeUntil(")"),
+        finallyBlock: JavaBlock,
     });
 }
 
