@@ -58,6 +58,21 @@ class HorseguardsController {
 
     @RequestMapping(method = GET, path = "hello/{name}")
     public String person(@PathVariable String name) {
+
+        HorseguardsClient client = new HorseguardsClient();
+
+        String reponse = null;
+        try {
+            response = client.get("https://bananas.com")
+                .execute();
+        } finally {
+            // this is what it is supposed to look like
+            if (response != null) {
+                response.close();
+            }
+        }
+
+        return "App running: Served from " + getClass().getName();
         return "Hello " + name + "!";
     }
 

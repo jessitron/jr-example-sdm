@@ -18,6 +18,8 @@ import {
     SoftwareDeliveryMachine,
     SoftwareDeliveryMachineConfiguration,
     AutoCodeInspection,
+    onAnyPush,
+    goals,
 } from "@atomist/sdm";
 import {
     createSoftwareDeliveryMachine,
@@ -43,6 +45,8 @@ export function machine(
         name: "no client.get outside of try/catch ",
         inspection: inspectClientGetOutsideOfTry,
     })
+
+    sdm.withPushRules(onAnyPush().setGoals(goals("stuff").plan(codeInspect))
 
     /*
      * this is a good place to type
