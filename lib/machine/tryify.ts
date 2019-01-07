@@ -27,19 +27,23 @@ export const JavaBlock = Microgrammar.fromDefinitions<{content: string}>({
     _rpar: "}",
 });
 
+// TODO also from microgrammar
+export const parenthesizedExpression = Microgrammar.fromDefinitions<{content: string}>({
+    _lpar: "(",
+    content: takeUntil(")"),
+    _rpar: ")",
+});
+
+export const Catch = Microgrammar.fromDefinitions({
+    _catch: "catch",
+    clause: parenthesizedExpression,
+    block: JavaBlock,
+});
+
 export function tryFinally(): Microgrammar<{ tryBlock: string, finallyBlock: string }> {
-    // return Microgrammar.fromString("try ${tryBlock} finally ${finallyBlock}", {
-    //     tryBlock: JavaBlock,
-    //     //catch: zeroOrMore(Microgrammar.fromString("} catch ($catchClause) {")),
-    //     //catchClause: takeUntil(")"),
-    //     finallyBlock: JavaBlock,
-    // });
-    return Microgrammar.fromDefinitions( {
-        _try: "try",
+    return Microgrammar.fromString("try ${tryBlock} ${catches} finally ${finallyBlock}", {
         tryBlock: JavaBlock,
-        _finally: "finally",
-        //catch: zeroOrMore(Microgrammar.fromString("} catch ($catchClause) {")),
-        //catchClause: takeUntil(")"),
+        catches: zeroOrMore(Catch),
         finallyBlock: JavaBlock,
     });
 }
