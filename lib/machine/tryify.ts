@@ -24,7 +24,7 @@ export function targetBuilder(methodCall: string): Microgrammar<{ methodCall: st
 
 export const Catch = Microgrammar.fromDefinitions({
     _catch: "catch",
-    clause: parenthesizedExpression,
+    clause: parenthesizedExpression(),
     block: JavaBlock,
 });
 
