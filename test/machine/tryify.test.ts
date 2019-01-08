@@ -54,7 +54,7 @@ describe("tryify", () => {
             const pathExpression = "//unsafeCall";
             const parseWith = new MicrogrammarBasedFileParser("match", "unsafeCall", targetBuilder("client.get"));
 
-            // TODO address bug in automation-client around undefined
+            // TODO address bug in automation-client around undefined - Now fixed in master
             // const matches = astUtils.matchIterator(p, {
             //     globPatterns,
             //     pathExpression,
@@ -65,7 +65,7 @@ describe("tryify", () => {
             // }
 
             await astUtils.doWithAllMatches(p, parseWith, globPatterns, pathExpression, async m => {
-                // TODO this fails.
+                // TODO this fails. Probably a bug in automation-client. May want to remove the method.
                 //m.replace(replacement, {});
                 m.$value = `try { ${m.$value} } finally { absquatulate(); }`;
             });
