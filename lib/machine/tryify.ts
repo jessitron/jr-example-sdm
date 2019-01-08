@@ -12,10 +12,10 @@ import { MicrogrammarBasedFileParser } from "@atomist/automation-client/lib/tree
  * @return {Promise<void>}
  */
 export async function wrapInTry(p: Project,
-                                opts: {
-                                    globPatterns: GlobOptions,
-                                    initialMethodCall: string,
-                                }): Promise<void> {
+    opts: {
+        globPatterns: GlobOptions,
+        initialMethodCall: string,
+    }): Promise<void> {
     // This will benefit from optimized parsing: Only files containing the @value will be parsed
     const pathExpression = `//unsafeCall[/initialMethodCall[@value='${opts.initialMethodCall}']]`;
     const parseWith = new MicrogrammarBasedFileParser("match", "unsafeCall",
@@ -43,8 +43,8 @@ export async function wrapInTry(p: Project,
  * @param {string} initialMethodCall
  */
 export function targetBuilder(initialMethodCall: string): Microgrammar<{ initialMethodCall: string, fluency: string }> {
-    return Microgrammar.fromDefinitions({
-        initialMethodCall,
+    return Microgrammar.fromDefinitions<{ initialMethodCall: string, fluency: string }>({
+        initialMethodCall: initialMethodCall,
         param: "(",
         fluency: takeUntil("();"),
         end: "();",
@@ -58,7 +58,7 @@ export const Catch = Microgrammar.fromDefinitions({
 });
 
 export function tryFinally(): Microgrammar<{ tryBlock: string, finallyBlock: string }> {
-    return Microgrammar.fromString("try ${tryBlock} ${catches} finally ${finallyBlock}", {
+    return Microgrammar.fromString<{ tryBlock: string, finallyBlock: string }>("try ${tryBlock} ${catches} finally ${finallyBlock}", {
         tryBlock: JavaBlock,
         catches: zeroOrMore(Catch),
         finallyBlock: JavaBlock,
