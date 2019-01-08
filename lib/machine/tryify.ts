@@ -1,5 +1,7 @@
 import { CodeTransform } from "@atomist/sdm";
-import { Microgrammar, takeUntil, zeroOrMore, Concat } from "@atomist/microgrammar";
+import { Microgrammar, takeUntil, zeroOrMore } from "@atomist/microgrammar";
+import { JavaBlock } from "@atomist/microgrammar/lib/matchers/lang/cfamily/java/JavaBody";
+import { parenthesizedExpression } from "@atomist/microgrammar/lib/matchers/lang/cfamily/CBlock";
 
 /**
  * Match a call of the form
@@ -19,20 +21,6 @@ export function targetBuilder(methodCall: string): Microgrammar<{ methodCall: st
         end: "();",
     });
 }
-
-// TODO try to be compatible with microgrammar JavaBlock
-export const JavaBlock = Microgrammar.fromDefinitions<{content: string}>({
-    _lpar: "{",
-    content: takeUntil("}"),
-    _rpar: "}",
-});
-
-// TODO also from microgrammar
-export const parenthesizedExpression = Microgrammar.fromDefinitions<{content: string}>({
-    _lpar: "(",
-    content: takeUntil(")"),
-    _rpar: ")",
-});
 
 export const Catch = Microgrammar.fromDefinitions({
     _catch: "catch",
