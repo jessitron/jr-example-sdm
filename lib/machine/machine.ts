@@ -46,7 +46,7 @@ export function machine(
         inspection: inspectClientGetOutsideOfTry,
     });
 
-    sdm.withPushRules(onAnyPush().setGoals(goals("stuff").plan(codeInspect))
+    sdm.withPushRules(onAnyPush().setGoals(goals("stuff").plan(codeInspect)));
 
     /*
      * this is a good place to type

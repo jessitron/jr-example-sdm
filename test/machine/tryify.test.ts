@@ -1,5 +1,9 @@
-import { JavaBlock, targetBuilder, tryFinally } from "../../lib/machine/tryify";
+import { targetBuilder, tryFinally } from "../../lib/machine/tryify";
 import * as assert from "assert";
+import { InMemoryProject, InMemoryProjectFile } from "@atomist/automation-client";
+
+import { astUtils } from "@atomist/automation-client";
+import { MicrogrammarBasedFileParser } from "@atomist/automation-client/lib/tree/ast/microgrammar/MicrogrammarBasedFileParser";
 
 describe("tryify", () => {
 
@@ -36,18 +40,44 @@ describe("tryify", () => {
 
     });
 
-    describe("The grammar to find try-finally", () => {
+    describe("targeting within project", () => {
 
-        it("Should recognize a block", () => {
-            const input = `// blah blah
-            try {
-                response = client.get();
-            } finally {
-                response.close();
-            }`;
-            const result = JavaBlock.findMatches(input);
-            assert.strictEqual(result.length, 2);
+        it("should replace", async () => {
+            const toMatch = `client.get("http://example.org") 
+                                     .execute() 
+                                    .statusCode();`;
+            const replacement = `try { ${toMatch} } finally { absquatulate(); }`;
+            const java1 = new InMemoryProjectFile("src/main/java/Thing.java", `public class Thing { ${toMatch} }`);
+            const p = InMemoryProject.of(java1);
+
+            const globPatterns = "src/main/java/**/*.java";
+            const pathExpression = "//unsafeCall";
+            const parseWith = new MicrogrammarBasedFileParser("match", "unsafeCall", targetBuilder("client.get"));
+
+            // TODO address bug in automation-client around undefined
+            // const matches = astUtils.matchIterator(p, {
+            //     globPatterns,
+            //     pathExpression,
+            //     parseWith,
+            // });
+            // for await (const match of matches) {
+            //     console.log(match);
+            // }
+
+            await astUtils.doWithAllMatches(p, parseWith, globPatterns, pathExpression, async m => {
+                // TODO this fails.
+                //m.replace(replacement, {});
+                m.$value = `try { ${m.$value} } finally { absquatulate(); }`;
+            });
+
+            const java1Now = await p.getFile(java1.path);
+            const contentNow = java1Now.getContentSync();
+            const fromTry = contentNow.substr(contentNow.indexOf("try"));
+            assert.strictEqual(fromTry, replacement.substr(replacement.indexOf("try")) + " }");
         });
+    });
+
+    describe("The grammar to find try-finally", () => {
 
         it("Should match a try/finally with no catch", () => {
             const input = `// blah blah
