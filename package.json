@@ -22,12 +22,12 @@
   "types": "./index.d.ts",
   "dependencies": {
     "@atomist/automation-client": "^1.2.0",
-    "@atomist/sdm": "^1.1.0",
-    "@atomist/sdm-core": "^1.1.0",
-    "@atomist/sdm-pack-spring": "^1.1.1-java9.20181219060103"
+    "@atomist/sdm": "^1.2.0",
+    "@atomist/sdm-core": "^1.2.0",
+    "@atomist/sdm-pack-spring": "^1.1.0"
   },
   "devDependencies": {
-    "@atomist/sdm-local": "^1.0.3",
+    "@atomist/sdm-local": "^1.0.4",
     "@types/mocha": "^5.2.5",
     "@types/power-assert": "^1.5.0",
     "espower-typescript": "^9.0.0",
