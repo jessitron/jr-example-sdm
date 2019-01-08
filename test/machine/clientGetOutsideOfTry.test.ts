@@ -84,19 +84,19 @@ class HorseguardsController {
 }
 `
 describe("inspectClientGetOutsideOfTry", () => {
-    it("doesn't care about an empty project", async () => {
+    it.skip("doesn't care about an empty project", async () => {
         const p = InMemoryProject.of();
         const result = await inspectClientGetOutsideOfTry(p, undefined);
         assert.deepEqual(result, []);
     });
 
-    it("doesn't care about a random java file", async () => {
+    it.skip("doesn't care about a random java file", async () => {
         const p = InMemoryProject.of({ path: "src/main/Something.java", content: SomeRandomJavaFile });
         const result = await inspectClientGetOutsideOfTry(p, undefined);
         assert.deepEqual(result, []);
     });
 
-    it("does care about call to client.get", async () => {
+    it.skip("does care about call to client.get", async () => {
         const p = InMemoryProject.of({ path: "src/main/Something.java", content: OffendingJavaFile });
         const result = await inspectClientGetOutsideOfTry(p, undefined);
         assert.deepEqual(result, [{
