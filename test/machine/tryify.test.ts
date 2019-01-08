@@ -1,4 +1,4 @@
-import { targetBuilder, tryFinally } from "../../lib/machine/tryify";
+import { targetBuilder, tryFinally, wrapInTry } from "../../lib/machine/tryify";
 import * as assert from "assert";
 import { InMemoryProject, InMemoryProjectFile } from "@atomist/automation-client";
 
@@ -23,7 +23,7 @@ describe("tryify", () => {
             const mg = targetBuilder("client.get");
             const matches = mg.findMatches(input);
             assert.strictEqual(matches.length, 1);
-            assert.strictEqual(matches[0].methodCall, "client.get");
+            assert.strictEqual(matches[0].initialMethodCall, "client.get");
             assert(matches[0].fluency.includes("execute"));
             assert(matches[0].$matched.startsWith("client.get"));
             assert(matches[0].$matched.endsWith(".statusCode();"));
@@ -51,24 +51,7 @@ describe("tryify", () => {
             const p = InMemoryProject.of(java1);
 
             const globPatterns = "src/main/java/**/*.java";
-            const pathExpression = "//unsafeCall";
-            const parseWith = new MicrogrammarBasedFileParser("match", "unsafeCall", targetBuilder("client.get"));
-
-            // TODO address bug in automation-client around undefined - Now fixed in master
-            // const matches = astUtils.matchIterator(p, {
-            //     globPatterns,
-            //     pathExpression,
-            //     parseWith,
-            // });
-            // for await (const match of matches) {
-            //     console.log(match);
-            // }
-
-            await astUtils.doWithAllMatches(p, parseWith, globPatterns, pathExpression, async m => {
-                // TODO this fails. Probably a bug in automation-client. May want to remove the method.
-                //m.replace(replacement, {});
-                m.$value = `try { ${m.$value} } finally { absquatulate(); }`;
-            });
+            await wrapInTry(p, { globPatterns, initialMethodCall: "client.get" });
 
             const java1Now = await p.getFile(java1.path);
             const contentNow = java1Now.getContentSync();
