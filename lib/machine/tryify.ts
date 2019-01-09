@@ -15,6 +15,7 @@ export async function wrapInTry(p: Project,
     opts: {
         globPatterns: GlobOptions,
         initialMethodCall: string,
+        finallyContent: (tryContent: string) => string,
     }): Promise<TransformResult> {
     // This will benefit from optimized parsing: Only files containing the @value will be parsed
     const pathExpression = `//unsafeCall[/initialMethodCall[@value='${opts.initialMethodCall}']]`;
@@ -29,10 +30,10 @@ export async function wrapInTry(p: Project,
     let edited = false;
     for await (const unsafeCall of unsafeCalls) {
         edited = true;
-        unsafeCall.$value = `try { ${unsafeCall.$value} } finally { absquatulate(); }`;
+        unsafeCall.$value = `try { ${unsafeCall.$value} } finally { ${opts.finallyContent(unsafeCall.$value)} }`;
     }
 
-    return { edited, success: true, target: p}
+    return { edited, success: true, target: p }
 }
 
 /**

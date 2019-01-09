@@ -51,7 +51,7 @@ describe("tryify", () => {
             const p = InMemoryProject.of(java1);
 
             const globPatterns = "src/main/java/**/*.java";
-            await wrapInTry(p, { globPatterns, initialMethodCall: "client.get" });
+            await wrapInTry(p, { globPatterns, initialMethodCall: "client.get", finallyContent: () => "absquatulate();" });
 
             const java1Now = await p.getFile(java1.path);
             const contentNow = java1Now.getContentSync();

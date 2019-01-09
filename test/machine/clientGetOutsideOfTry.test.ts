@@ -87,19 +87,69 @@ class HorseguardsController {
 describe("inspectClientGetOutsideOfTry", () => {
     it("doesn't care about an empty project", async () => {
         const p = InMemoryProject.of();
-        const result = await wrapInTry(p, { globPatterns: "**/*.java", initialMethodCall: "client.get" });
+        const result = await wrapInTry(p, {
+            globPatterns: "**/*.java",
+            initialMethodCall: "client.get",
+            finallyContent: () => " abquatulate(); ",
+        });
         assert(!result.edited);
     });
 
     it("doesn't care about a random java file", async () => {
         const p = InMemoryProject.of({ path: "src/main/Something.java", content: SomeRandomJavaFile });
-        const result = await wrapInTry(p, { globPatterns: "**/*.java", initialMethodCall: "client.get" });
+        const result = await wrapInTry(p, {
+            globPatterns: "**/*.java",
+            initialMethodCall: "client.get",
+            finallyContent: () => " abquatulate(); "
+        });
         assert(!result.edited);
     });
 
     it("does care about call to client.get", async () => {
         const p = InMemoryProject.of({ path: "src/main/Something.java", content: OffendingJavaFile });
-        const result = await wrapInTry(p, { globPatterns: "**/*.java", initialMethodCall: "client.get" });
+        const result = await wrapInTry(p, {
+            globPatterns: "**/*.java",
+            initialMethodCall: "client.get",
+            finallyContent: () => " abquatulate(); "
+        });
         assert(result.edited)
     });
+
+    it("contains the thing wrapped in tryFinally", async () => {
+        const shouldContain = `try {
+             String response = client.get("https://bananas.com")
+                                     .execute(); 
+        } finally { 
+            if (response != null) { 
+                response.close()
+             }
+        }`;
+        const p = InMemoryProject.of({ path: "src/main/Something.java", content: OffendingJavaFile });
+        const result = await wrapInTry(p, {
+            globPatterns: "**/*.java",
+            initialMethodCall: "client.get",
+            finallyContent: () => "if (response != null) { response.close() }"
+        });
+        assert(result.edited)
+        const newContent = p.findFileSync("src/main/Something.java").getContentSync();
+
+        assert(normalizeWhitespace(newContent).includes(normalizeWhitespace(shouldContain)));
+    })
+
 });
+
+function normalizeWhitespace(str: string): string {
+    return str.replace(/\s+/g, " ").trim();
+}
+
+describe("normalizeWhitespace", () => {
+    it("replaces each whitespace patch with a single space", () => {
+        const input = `  some stuff
+     and then more stuff;  
+           and yet more
+           `;
+
+        const expected = "some stuff and then more stuff; and yet more";
+        assert.strictEqual(normalizeWhitespace(input), expected);
+    })
+})
