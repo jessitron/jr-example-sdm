@@ -21,7 +21,7 @@
   "main": "./index.js",
   "types": "./index.d.ts",
   "dependencies": {
-    "@atomist/automation-client": "https://registry.npmjs.org/@atomist/automation-client/-/@atomist/automation-client-1.2.1-mutate-iterator.20190108054433.tgz",
+    "@atomist/automation-client": "^1.2.1-within.20190108184155",
     "@atomist/microgrammar": "^1.0.2-master.20190108055954",
     "@atomist/sdm": "^1.2.0",
     "@atomist/sdm-core": "^1.2.0",

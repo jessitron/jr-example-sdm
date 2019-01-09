@@ -1,4 +1,4 @@
-import { CodeTransform } from "@atomist/sdm";
+import { CodeTransform, TransformResult } from "@atomist/sdm";
 import { Microgrammar, takeUntil, zeroOrMore } from "@atomist/microgrammar";
 import { JavaBlock } from "@atomist/microgrammar/lib/matchers/lang/cfamily/java/JavaBody";
 import { parenthesizedExpression } from "@atomist/microgrammar/lib/matchers/lang/cfamily/CBlock";
@@ -15,7 +15,7 @@ export async function wrapInTry(p: Project,
     opts: {
         globPatterns: GlobOptions,
         initialMethodCall: string,
-    }): Promise<void> {
+    }): Promise<TransformResult> {
     // This will benefit from optimized parsing: Only files containing the @value will be parsed
     const pathExpression = `//unsafeCall[/initialMethodCall[@value='${opts.initialMethodCall}']]`;
     const parseWith = new MicrogrammarBasedFileParser("match", "unsafeCall",
@@ -26,9 +26,13 @@ export async function wrapInTry(p: Project,
         pathExpression,
         parseWith,
     });
+    let edited = false;
     for await (const unsafeCall of unsafeCalls) {
+        edited = true;
         unsafeCall.$value = `try { ${unsafeCall.$value} } finally { absquatulate(); }`;
     }
+
+    return { edited, success: true, target: p}
 }
 
 /**

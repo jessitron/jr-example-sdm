@@ -1,6 +1,7 @@
 import * as assert from "assert";
 import { InMemoryProject } from "@atomist/automation-client";
 import { inspectClientGetOutsideOfTry } from "../../lib/machine/clientGetOutsideOfTry";
+import { wrapInTry } from "../../lib/machine/tryify";
 
 const SomeRandomJavaFile = `package com.jessitron.hg;
 
@@ -84,26 +85,21 @@ class HorseguardsController {
 }
 `
 describe("inspectClientGetOutsideOfTry", () => {
-    it.skip("doesn't care about an empty project", async () => {
+    it("doesn't care about an empty project", async () => {
         const p = InMemoryProject.of();
-        const result = await inspectClientGetOutsideOfTry(p, undefined);
-        assert.deepEqual(result, []);
+        const result = await wrapInTry(p, { globPatterns: "**/*.java", initialMethodCall: "client.get" });
+        assert(!result.edited);
     });
 
-    it.skip("doesn't care about a random java file", async () => {
+    it("doesn't care about a random java file", async () => {
         const p = InMemoryProject.of({ path: "src/main/Something.java", content: SomeRandomJavaFile });
-        const result = await inspectClientGetOutsideOfTry(p, undefined);
-        assert.deepEqual(result, []);
+        const result = await wrapInTry(p, { globPatterns: "**/*.java", initialMethodCall: "client.get" });
+        assert(!result.edited);
     });
 
-    it.skip("does care about call to client.get", async () => {
+    it("does care about call to client.get", async () => {
         const p = InMemoryProject.of({ path: "src/main/Something.java", content: OffendingJavaFile });
-        const result = await inspectClientGetOutsideOfTry(p, undefined);
-        assert.deepEqual(result, [{
-            path: 'src/main/Something.java',
-            lineFrom1: 20,
-            columnFrom1: 27,
-            offset: 581
-        }]);
+        const result = await wrapInTry(p, { globPatterns: "**/*.java", initialMethodCall: "client.get" });
+        assert(result.edited)
     });
 });
