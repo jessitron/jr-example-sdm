@@ -133,7 +133,7 @@ describe("inspectClientGetOutsideOfTry", () => {
         assert(result.edited)
         const newContent = p.findFileSync("src/main/Something.java").getContentSync();
 
-        assert(normalizeWhitespace(newContent).includes(normalizeWhitespace(shouldContain)));
+        assert(normalizeWhitespace(newContent).includes(normalizeWhitespace(shouldContain)), newContent);
     })
 
 });

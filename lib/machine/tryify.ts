@@ -5,6 +5,7 @@ import { parenthesizedExpression } from "@atomist/microgrammar/lib/matchers/lang
 import { astUtils, Project } from "@atomist/automation-client";
 import { GlobOptions } from "@atomist/automation-client/lib/project/util/projectUtils";
 import { MicrogrammarBasedFileParser } from "@atomist/automation-client/lib/tree/ast/microgrammar/MicrogrammarBasedFileParser";
+import { notWithin } from "@atomist/automation-client/lib/tree/ast/matchTesters";
 
 /**
  * Wrap the function in a try
@@ -26,6 +27,7 @@ export async function wrapInTry(p: Project,
         globPatterns: opts.globPatterns,
         pathExpression,
         parseWith,
+        testWith: notWithin(tryFinally())
     });
     let edited = false;
     for await (const unsafeCall of unsafeCalls) {
