@@ -13,11 +13,11 @@ import { notWithin } from "@atomist/automation-client/lib/tree/ast/matchTesters"
  * @return {Promise<void>}
  */
 export async function wrapInTry(p: Project,
-                                opts: {
-                                    globPatterns: GlobOptions,
-                                    initialMethodCall: string,
-                                    finallyContent: (tryContent: string) => string,
-                                }): Promise<TransformResult> {
+    opts: {
+        globPatterns: GlobOptions,
+        initialMethodCall: string,
+        finallyContent: (tryContent: string) => string,
+    }): Promise<TransformResult> {
     // This will benefit from optimized parsing: Only files containing the @value will be parsed
     const pathExpression = `//unsafeCall[//initialMethodCall[@value='${opts.initialMethodCall}']]`;
     const parseWith = new MicrogrammarBasedFileParser("match", "unsafeCall",
@@ -76,7 +76,7 @@ const JavaIdentifier = /[a-zA-Z0-9]+/;
 
 export function lhsEquals(): Microgrammar<any> {
     return Microgrammar.fromString("${type} ${varname} =", {
-        type: JavaIdentifier,
+        type: JavaIdentifier, // todo: optional
         varname: JavaIdentifier,
     });
 }
@@ -91,7 +91,7 @@ export function lhsEquals(): Microgrammar<any> {
  */
 export function target(initialMethodCall: string): Microgrammar<Target> {
     return Microgrammar.fromDefinitions<Target>({
-        beforeMethodCall: lhsEquals(),
+        beforeMethodCall: lhsEquals(), // todo: optional
         fluentBuilderInvocation: fluentBuilderInvocation(initialMethodCall),
     });
 }

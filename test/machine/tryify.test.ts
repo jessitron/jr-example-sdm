@@ -86,12 +86,12 @@ describe("tryify", () => {
     describe("targeting within project", () => {
 
         it("should replace", async () => {
-            const toMatch = `client.get("http://example.org") 
+            const toMatch = `int statusCode = client.get("http://example.org") 
                                      .execute() 
                                     .statusCode();`;
             const replacement = `try { ${toMatch} } finally { absquatulate(); }`;
             const java1 = new InMemoryProjectFile("src/main/java/Thing.java",
-                `public class Thing { int statusCode = ${toMatch} }`);
+                `public class Thing { ${toMatch} }`);
             const p = InMemoryProject.of(java1);
 
             const globPatterns = "src/main/java/**/*.java";
@@ -105,7 +105,8 @@ describe("tryify", () => {
             const contentNow = java1Now.getContentSync();
             console.log("NOW=" + contentNow);
             const fromTry = contentNow.substr(contentNow.indexOf("try"));
-            assert.strictEqual(fromTry, replacement.substr(replacement.indexOf("try")) + " }");
+            const fromTryExpected = replacement.substr(replacement.indexOf("try")) + " }";
+            assert.strictEqual(fromTry, fromTryExpected);
         });
     });
 
