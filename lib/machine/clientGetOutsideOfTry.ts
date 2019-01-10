@@ -19,7 +19,7 @@ export async function wrapInTry(p: Project,
         endOfCall: string,
         returnType: string,
         returnVariableName: string,
-        finallyContent: (tryContent: string) => string,
+        finallyContent: (varname: string) => string,
     }): Promise<TransformResult> {
     // This will benefit from optimized parsing: Only files containing the @value will be parsed
     const pathExpression = `//unsafeCall[//beginningOfCall[@value='${opts.beginningOfCall}']]`;
@@ -37,14 +37,28 @@ export async function wrapInTry(p: Project,
     for await (const unsafeCall of unsafeCalls) {
         edited = true;
         const uc = unsafeCall as any as (Target & MatchResult); // TODO this won't be necessary after upgrading automation-client
-        //const unsafeCallValue = unsafeCallTyped.$value.slice(unsafeCallTyped.endOfPreviousExpression.length);
-        unsafeCall.$value =
+
+        console.log("The rest of the statement is: " + uc.restOfStatement);
+        const moreCallsAreMade = (typeof uc.restOfStatement === "string" && uc.restOfStatement.length > 0);
+        const newValue = moreCallsAreMade ?
+            // declare a new variable to hold the call of doom
+            `${opts.returnType} ${opts.returnVariableName} = ${javaInitialValue(opts.returnType)};
+try {
+    ${opts.returnVariableName} = ${(uc.invocation as Invocation & MatchResult).$value};
+} finally {
+    ${opts.finallyContent(opts.returnVariableName)}
+}
+${uc.beforeMethodCall.declaredType} ${uc.beforeMethodCall.varname} = ${opts.returnVariableName}${uc.restOfStatement};
+` :
+            // use the variable they have already declared
             `${uc.beforeMethodCall.declaredType} ${uc.beforeMethodCall.varname} = ${javaInitialValue(uc.beforeMethodCall.declaredType)};
 try {
-    ${uc.beforeMethodCall.varname} = ${(uc.invocation as Invocation & MatchResult).$value}${(uc.restOfStatement).$value};
+    ${uc.beforeMethodCall.varname} = ${(uc.invocation as Invocation & MatchResult).$value};
 } finally {
-    ${opts.finallyContent("")}
+    ${opts.finallyContent(uc.beforeMethodCall.varname)}
 }`.replace(/    /g, "\t");
+
+        unsafeCall.$value = newValue;
     }
 
     return { edited, success: true, target: p };
@@ -62,7 +76,7 @@ function javaInitialValue(type: string): string {
 export interface Target {
     beforeMethodCall: { declaredType: string, varname: string };
     invocation: Invocation;
-    restOfStatement: MatchResult;
+    restOfStatement: string;
 }
 export interface Invocation {
     beginningOfCall: string,

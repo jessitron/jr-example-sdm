@@ -85,43 +85,32 @@ class HorseguardsController {
 
 }
 `
+
+const commonOptions = {
+    globPatterns: "**/*.java",
+    beginningOfCall: "client.get(",
+    endOfCall: "execute()",
+    returnType: "HorseguardsResponse",
+    returnVariableName: "response",
+    finallyContent: (v: string) => `if (${v} != null) { ${v}.close(); }`,
+};
+
 describe("inspectClientGetOutsideOfTry", () => {
     it("doesn't care about an empty project", async () => {
         const p = InMemoryProject.of();
-        const result = await wrapInTry(p, {
-            globPatterns: "**/*.java",
-            beginningOfCall: "client.get(",
-            endOfCall: "execute()",
-            returnType: "HorseguardsController",
-            returnVariableName: "response",
-            finallyContent: () => " abquatulate(); ",
-        });
+        const result = await wrapInTry(p, commonOptions);
         assert(!result.edited);
     });
 
     it("doesn't care about a random java file", async () => {
         const p = InMemoryProject.of({ path: "src/main/Something.java", content: SomeRandomJavaFile });
-        const result = await wrapInTry(p, {
-            globPatterns: "**/*.java",
-            beginningOfCall: "client.get(",
-            endOfCall: "execute()",
-            returnType: "HorseguardsController",
-            returnVariableName: "response",
-            finallyContent: () => " abquatulate(); "
-        });
+        const result = await wrapInTry(p, commonOptions);
         assert(!result.edited);
     });
 
     it("does care about call to client.get", async () => {
         const p = InMemoryProject.of({ path: "src/main/Something.java", content: OffendingJavaFile });
-        const result = await wrapInTry(p, {
-            globPatterns: "**/*.java",
-            beginningOfCall: "client.get(",
-            endOfCall: "execute()",
-            returnType: "HorseguardsController",
-            returnVariableName: "response",
-            finallyContent: () => " abquatulate(); "
-        });
+        const result = await wrapInTry(p, commonOptions);
         assert(result.edited)
     });
 
@@ -141,14 +130,7 @@ describe("inspectClientGetOutsideOfTry", () => {
                 response.close()
              }
         }`;
-        const result = await transformJavaMethodBody(before, p => wrapInTry(p, {
-            globPatterns: "**/*.java",
-            beginningOfCall: "client.get(",
-            endOfCall: "execute()",
-            returnType: "HorseguardsController",
-            returnVariableName: "response",
-            finallyContent: () => "if (response != null) { response.close() }"
-        }));
+        const result = await transformJavaMethodBody(before, p => wrapInTry(p, commonOptions));
 
         assert(normalizeWhitespace(result), normalizeWhitespace(after));
     });
@@ -179,20 +161,15 @@ describe("inspectClientGetOutsideOfTry", () => {
         return "App running: Served from " + getClass().getName() +
                 " got " + response.statusCode();`;
 
-        const actual = await transformJavaMethodBody(before, p => wrapInTry(p, {
-            globPatterns: "**/*.java",
-            beginningOfCall: "client.get(",
-            endOfCall: "execute()",
-            returnType: "HorseguardsController",
-            returnVariableName: "response",
-            finallyContent: () => `if (response != null) {
-                response.close();
-            }`
-        }));
+        const actual = await transformJavaMethodBody(before, p => wrapInTry(p, commonOptions));
 
         assert.strictEqual(normalizeWhitespace(actual), normalizeWhitespace(after));
 
     });
+
+    it("Should work when the return value is unused");
+
+    it("Should work when statusCode is stored in a var that is not declared right there")
 
 });
 
@@ -265,16 +242,15 @@ describe("tryify", () => {
         it("should pull out response variable", async () => {
             const toStoreAsResponse = `client.get("http://example.org")
                 .execute()`;
-            const methodBody = `int statusCode = ${toStoreAsResponse}
-                                    .statusCode();
+            const methodBody = `int statusCode = ${toStoreAsResponse}.statusCode();
             return statusCode;`
             const replacement = `HorseguardsResponse response = null; 
             try {
-                response = ${toStoreAsResponse} 
+                response = ${toStoreAsResponse};
             } finally {
-                absquatulate();
+                absquatulate(response);
             }
-            int statusCode = response. statusCode();
+            int statusCode = response.statusCode();
             return statusCode;`;
 
 
