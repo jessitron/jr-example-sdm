@@ -138,19 +138,16 @@ describe("inspectClientGetOutsideOfTry", () => {
     });
 
     it("Wraps a stored response", async () => {
-        const before = `public String storingResponse() throws IOException {
-
+        const before = `
         HorseguardsClient client = new HorseguardsClient();
 
         HorseguardsResponse response = client.get("https://bananas.com")
                 .execute();
 
         return "App running: Served from " + getClass().getName() +
-                " got " + response.statusCode();
-    }`;
-        const after = `
-    public String storingResponse() throws IOException {
+                " got " + response.statusCode();`;
 
+        const after = `
         HorseguardsClient client = new HorseguardsClient();
 
         HorseguardsResponse response = null;
@@ -164,10 +161,9 @@ describe("inspectClientGetOutsideOfTry", () => {
         }
 
         return "App running: Served from " + getClass().getName() +
-                " got " + response.statusCode();
-    }`;
+                " got " + response.statusCode();`;
 
-        const actual = await transformJavaMethod(before, p => wrapInTry(p, {
+        const actual = await transformJavaMethodBody(before, p => wrapInTry(p, {
             globPatterns: "**/*.java",
             initialMethodCall: "client.get",
             finallyContent: () => `if (response != null) {
@@ -182,11 +178,13 @@ describe("inspectClientGetOutsideOfTry", () => {
 });
 
 
-async function transformJavaMethod(methodDefinition: string, transform: CodeTransform): Promise<string> {
+async function transformJavaMethodBody(methodDefinition: string, transform: CodeTransform): Promise<string> {
     const prefix = `package la.la.la;
 
-class Foo {`;
-    const suffix = "\n}\n";
+class Foo {
+    public void callMe() {
+`;
+    const suffix = "\n    }\n}\n";
     const p = InMemoryProject.of({
         path: "src/main/Something.java",
         content: prefix + methodDefinition + suffix
@@ -278,29 +276,27 @@ describe("tryify", () => {
 
     describe("targeting within project", () => {
         it("should replace", async () => {
-            const toMatch = `int statusCode = client.get("http://example.org") 
+            const toWrap = `statusCode = client.get("http://example.org") 
                                      .execute() 
                                     .statusCode();`;
-            const replacement = `int statusCode = ; try { ${toMatch} } finally { absquatulate(); }`;
+            const methodBody = `int ${toWrap}
+            return statusCode;`
+            const replacement = `int statusCode = 0; 
+            try {
+                ${toWrap} 
+            } finally {
+                absquatulate();
+            }
+            return statusCode;`;
 
 
-            const java1 = new InMemoryProjectFile("src/main/java/Thing.java",
-                `public class Thing { ${toMatch} }`);
-            const p = InMemoryProject.of(java1);
-
-            const globPatterns = "src/main/java/**/*.java";
-            await wrapInTry(p, {
-                globPatterns,
+            const result = await transformJavaMethodBody(methodBody, p => wrapInTry(p, {
+                globPatterns: "**/*.java",
                 initialMethodCall: "client.get",
                 finallyContent: () => "absquatulate();",
-            });
+            }))
 
-            const java1Now = await p.getFile(java1.path);
-            const contentNow = java1Now.getContentSync();
-            console.log("NOW=" + contentNow);
-            const fromTry = contentNow.substr(contentNow.indexOf("try"));
-            const fromTryExpected = replacement.substr(replacement.indexOf("try")) + " }";
-            assert.strictEqual(normalizeWhitespace(fromTry), normalizeWhitespace(fromTryExpected));
+            assert.strictEqual(normalizeWhitespace(result), normalizeWhitespace(replacement));
         });
     });
 
