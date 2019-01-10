@@ -84,12 +84,11 @@ describe("tryify", () => {
     });
 
     describe("targeting within project", () => {
-
         it("should replace", async () => {
             const toMatch = `int statusCode = client.get("http://example.org") 
                                      .execute() 
                                     .statusCode();`;
-            const replacement = `try { ${toMatch} } finally { absquatulate(); }`;
+            const replacement = `int statusCode = ; try { ${toMatch} } finally { absquatulate(); }`;
             const java1 = new InMemoryProjectFile("src/main/java/Thing.java",
                 `public class Thing { ${toMatch} }`);
             const p = InMemoryProject.of(java1);

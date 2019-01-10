@@ -2,6 +2,7 @@ import * as assert from "assert";
 import { InMemoryProject } from "@atomist/automation-client";
 import { inspectClientGetOutsideOfTry } from "../../lib/machine/clientGetOutsideOfTry";
 import { wrapInTry } from "../../lib/machine/tryify";
+import { CodeTransform, TransformResult } from "@atomist/sdm";
 
 const SomeRandomJavaFile = `package com.jessitron.hg;
 
@@ -134,12 +135,69 @@ describe("inspectClientGetOutsideOfTry", () => {
         const newContent = p.findFileSync("src/main/Something.java").getContentSync();
 
         assert(normalizeWhitespace(newContent).includes(normalizeWhitespace(shouldContain)), newContent);
+    });
+
+    it("Wraps a stored response", async () => {
+        const before = `public String storingResponse() throws IOException {
+
+        HorseguardsClient client = new HorseguardsClient();
+
+        HorseguardsResponse response = client.get("https://bananas.com")
+                .execute();
+
+        return "App running: Served from " + getClass().getName() +
+                " got " + response.statusCode();
+    }`;
+        const after = `
+    public String storingResponseCorrectly() throws IOException {
+
+        HorseguardsClient client = new HorseguardsClient();
+
+        HorseguardsResponse response = null;
+        try {
+            response = client.get("https://bananas.com")
+                    .execute();
+        } finally {
+            if (response != null) {
+                response.close();
+            }
+        }
+
+        return "App running: Served from " + getClass().getName() +
+                " got " + response.statusCode();
+    }`;
+
+        const actual = await transformJavaMethod(before, p => wrapInTry(p, {
+            globPatterns: "**/*.java",
+            initialMethodCall: "client.get",
+            finallyContent: () => `if (response != null) {
+                response.close();
+            }`
+        }));
+
+        assert(normalizeWhitespace(actual).includes(normalizeWhitespace(after)), actual);
+
     })
 
 });
 
 function normalizeWhitespace(str: string): string {
     return str.replace(/\s+/g, " ").trim();
+}
+
+async function transformJavaMethod(methodDefinition: string, transform: CodeTransform): Promise<string> {
+    const p = InMemoryProject.of({
+        path: "src/main/Something.java", content: `package la.la.la;
+
+class Foo {
+    ${methodDefinition}
+}
+` });
+    const result = await transform(p, undefined);
+    assert((result as TransformResult).edited)
+    const newContent = p.findFileSync("src/main/Something.java").getContentSync();
+
+    return newContent;
 }
 
 describe("normalizeWhitespace", () => {
