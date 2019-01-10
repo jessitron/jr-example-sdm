@@ -7,6 +7,7 @@ import { astUtils, Project, MatchResult } from "@atomist/automation-client";
 import { GlobOptions } from "@atomist/automation-client/lib/project/util/projectUtils";
 import { MicrogrammarBasedFileParser } from "@atomist/automation-client/lib/tree/ast/microgrammar/MicrogrammarBasedFileParser";
 import { notWithin } from "@atomist/automation-client/lib/tree/ast/matchTesters";
+import { JavaIdentifierRegExp } from "@atomist/sdm-pack-spring";
 
 /**
  * Wrap the function in a try
@@ -14,15 +15,15 @@ import { notWithin } from "@atomist/automation-client/lib/tree/ast/matchTesters"
  * @return {Promise<void>}
  */
 export async function wrapInTry(p: Project,
-    opts: {
-        globPatterns: GlobOptions,
-        initialMethodCall: string,
-        finallyContent: (tryContent: string) => string,
-    }): Promise<TransformResult> {
+                                opts: {
+                                    globPatterns: GlobOptions,
+                                    initialMethodCall: string,
+                                    finallyContent: (tryContent: string) => string,
+                                }): Promise<TransformResult> {
     // This will benefit from optimized parsing: Only files containing the @value will be parsed
     const pathExpression = `//unsafeCall[/initialMethodCall[@value='${opts.initialMethodCall}']]`;
     const parseWith = new MicrogrammarBasedFileParser("match", "unsafeCall",
-        targetBuilder(opts.initialMethodCall));
+        fluentBuilderInvocation(opts.initialMethodCall));
 
     const unsafeCalls = astUtils.matchIterator(p, {
         globPatterns: opts.globPatterns,
@@ -41,10 +42,11 @@ export async function wrapInTry(p: Project,
     return { edited, success: true, target: p }
 }
 
-
-export type TargetBuilderMG = {
-    endOfPreviousExpression: string, beforeMethodCall: string, initialMethodCall: string, fluency: string
+export interface FluentBuilderInvocation {
+    initialMethodCall: string;
+    fluency: string;
 }
+
 /**
  * Match a call of the form
  * client.get("http://example.org")
@@ -56,14 +58,34 @@ export type TargetBuilderMG = {
  * Don't pull more detail out than needed
  * @param {string} initialMethodCall
  */
-export function targetBuilder(initialMethodCall: string): Microgrammar<TargetBuilderMG> {
-    return Microgrammar.fromDefinitions<TargetBuilderMG>({
-        endOfPreviousExpression: /[;{]/,
-        beforeMethodCall: takeUntil(initialMethodCall),
-        initialMethodCall: initialMethodCall,
+export function fluentBuilderInvocation(initialMethodCall: string): Microgrammar<FluentBuilderInvocation> {
+    return Microgrammar.fromDefinitions<FluentBuilderInvocation>({
+        initialMethodCall,
         param: "(",
         fluency: takeUntil("();"),
         end: "();",
+    });
+}
+
+export interface Target {
+    beforeMethodCall: string;
+    fluentBuilderInvocation: FluentBuilderInvocation;
+}
+
+// TODO correct that
+const JavaIdentifier = /[a-zA-Z0-9]+/;
+
+export function lhsEquals(): Microgrammar<any> {
+    return Microgrammar.fromString("${type} ${varname} =", {
+        type: JavaIdentifier,
+        varname: JavaIdentifier,
+    });
+}
+
+export function target(initialMethodCall: string): Microgrammar<Target> {
+    return Microgrammar.fromDefinitions<Target>({
+        beforeMethodCall: lhsEquals(),
+        fluentBuilderInvocation: fluentBuilderInvocation(initialMethodCall),
     });
 }
 
@@ -81,7 +103,7 @@ export function tryFinally(): Microgrammar<{ tryBlock: string, finallyBlock: str
     });
 }
 
-// it's something like <identifier> = targetBuilder; return <identifier>;
+// it's something like <identifier> = fluentBuilderInvocation; return <identifier>;
 //const unsafeStatementGrammar = Microgrammar.fromString();
 
 export const tryify: CodeTransform =

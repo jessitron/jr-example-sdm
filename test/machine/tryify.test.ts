@@ -1,4 +1,4 @@
-import { targetBuilder, tryFinally, wrapInTry } from "../../lib/machine/tryify";
+import { fluentBuilderInvocation, lhsEquals, target, tryFinally, wrapInTry } from "../../lib/machine/tryify";
 import * as assert from "assert";
 import { InMemoryProject, InMemoryProjectFile } from "@atomist/automation-client";
 
@@ -7,11 +7,11 @@ import { MicrogrammarBasedFileParser } from "@atomist/automation-client/lib/tree
 
 describe("tryify", () => {
 
-    describe("targetBuilder", () => {
+    describe("fluentBuilderInvocation", () => {
 
         it("should not match", () => {
             const input = "nothing to see here";
-            const mg = targetBuilder("client.get");
+            const mg = fluentBuilderInvocation("client.get");
             assert.strictEqual(mg.findMatches(input).length, 0);
         });
 
@@ -20,7 +20,7 @@ describe("tryify", () => {
                                      .execute() 
                                     .statusCode();    
         return statusCode;`;
-            const mg = targetBuilder("client.get");
+            const mg = fluentBuilderInvocation("client.get");
             const matches = mg.findMatches(input);
             assert.strictEqual(matches.length, 1);
             assert.strictEqual(matches[0].initialMethodCall, "client.get");
@@ -34,13 +34,56 @@ describe("tryify", () => {
                                      .execute() 
                                     .statusCode();    
         return statusCode;`;
-            const mg = targetBuilder("client.get");
+            const mg = fluentBuilderInvocation("client.get");
             assert.strictEqual(mg.findMatches(input).length, 0);
         });
 
     });
 
-    describe("targeting within project", () => {
+    describe("lhs equals", () => {
+
+        it("should match", () => {
+            const input = "int statusCode =";
+            const mg = lhsEquals();
+            assert.strictEqual(mg.findMatches(input).length, 1);
+        });
+
+    });
+
+    describe("target expression", () => {
+
+        it("should not match", () => {
+            const input = "nothing to see here";
+            const mg = target("client.get");
+            assert.strictEqual(mg.findMatches(input).length, 0);
+        });
+
+        it("should find one match", () => {
+            const input = `int statusCode = client.get("http://example.org") 
+                                     .execute() 
+                                    .statusCode();    
+        return statusCode;`;
+            const mg = target("client.get");
+            const matches = mg.findMatches(input);
+            assert.strictEqual(matches.length, 1);
+            assert.strictEqual(matches[0].fluentBuilderInvocation.initialMethodCall, "client.get");
+            assert(matches[0].fluentBuilderInvocation.fluency.includes("execute"));
+            assert(matches[0].$matched.startsWith("int statusCode ="));
+            assert(matches[0].$matched.endsWith(".statusCode();"));
+        });
+
+        it("should not match wrong initial call", () => {
+            const input = `int statusCode = client.notGet("http://example.org") 
+                                     .execute() 
+                                    .statusCode();    
+        return statusCode;`;
+            const mg = target("client.get");
+            assert.strictEqual(mg.findMatches(input).length, 0);
+        });
+
+    });
+
+    describe.skip("targeting within project", () => {
 
         it("should replace", async () => {
             const toMatch = `client.get("http://example.org") 
