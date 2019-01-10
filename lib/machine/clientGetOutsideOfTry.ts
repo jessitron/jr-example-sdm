@@ -54,13 +54,13 @@ function wrappedCall(opts: {
 }, uc: Target & MatchResult): string {
     const moreCallsAreMade = (typeof uc.restOfStatement === "string" && uc.restOfStatement.length > 0);
 
-    const ResponseType = moreCallsAreMade ?
-        opts.returnType :
-        uc.beforeMethodCall.declaredType;
+    const ResponseType = opts.returnType; // capitalized to make it look like what it represents
 
     const response = moreCallsAreMade ?
         opts.returnVariableName :
-        uc.beforeMethodCall.varname;
+        storesReturnValue(uc) ?
+            uc.beforeMethodCall.varname :
+            opts.returnVariableName;
 
     const init = javaInitialValue(ResponseType);
 
@@ -79,6 +79,11 @@ function wrappedCall(opts: {
         ${cleanup}
     }
     ${restOfStuff}`
+
+}
+
+function storesReturnValue(uc: Target): boolean {
+    return !!(uc.beforeMethodCall && uc.beforeMethodCall.varname);
 
 }
 
