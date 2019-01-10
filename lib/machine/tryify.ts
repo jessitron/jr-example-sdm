@@ -1,8 +1,9 @@
+import { TargetBuilderMG } from './tryify';
 import { CodeTransform, TransformResult } from "@atomist/sdm";
 import { Microgrammar, takeUntil, zeroOrMore } from "@atomist/microgrammar";
 import { JavaBlock } from "@atomist/microgrammar/lib/matchers/lang/cfamily/java/JavaBody";
 import { parenthesizedExpression } from "@atomist/microgrammar/lib/matchers/lang/cfamily/CBlock";
-import { astUtils, Project } from "@atomist/automation-client";
+import { astUtils, Project, MatchResult } from "@atomist/automation-client";
 import { GlobOptions } from "@atomist/automation-client/lib/project/util/projectUtils";
 import { MicrogrammarBasedFileParser } from "@atomist/automation-client/lib/tree/ast/microgrammar/MicrogrammarBasedFileParser";
 import { notWithin } from "@atomist/automation-client/lib/tree/ast/matchTesters";
@@ -32,12 +33,18 @@ export async function wrapInTry(p: Project,
     let edited = false;
     for await (const unsafeCall of unsafeCalls) {
         edited = true;
-        unsafeCall.$value = `try { ${unsafeCall.$value} } finally { ${opts.finallyContent(unsafeCall.$value)} }`;
+        const unsafeCallTyped = unsafeCall as unknown as MatchResult & TargetBuilderMG;
+        const unsafeCallValue = unsafeCallTyped.$value.slice(unsafeCallTyped.endOfPreviousExpression.length);
+        unsafeCall.$value = unsafeCallTyped.endOfPreviousExpression + ` try { ${unsafeCallValue} } finally { ${opts.finallyContent(unsafeCallValue)} }`;
     }
 
     return { edited, success: true, target: p }
 }
 
+
+export type TargetBuilderMG = {
+    endOfPreviousExpression: string, beforeMethodCall: string, initialMethodCall: string, fluency: string
+}
 /**
  * Match a call of the form
  * client.get("http://example.org")
@@ -49,8 +56,10 @@ export async function wrapInTry(p: Project,
  * Don't pull more detail out than needed
  * @param {string} initialMethodCall
  */
-export function targetBuilder(initialMethodCall: string): Microgrammar<{ initialMethodCall: string, fluency: string }> {
-    return Microgrammar.fromDefinitions<{ initialMethodCall: string, fluency: string }>({
+export function targetBuilder(initialMethodCall: string): Microgrammar<TargetBuilderMG> {
+    return Microgrammar.fromDefinitions<TargetBuilderMG>({
+        endOfPreviousExpression: /[;{]/,
+        beforeMethodCall: takeUntil(initialMethodCall),
         initialMethodCall: initialMethodCall,
         param: "(",
         fluency: takeUntil("();"),
