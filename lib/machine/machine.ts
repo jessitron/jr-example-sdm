@@ -24,7 +24,6 @@ import {
 import {
     createSoftwareDeliveryMachine,
 } from "@atomist/sdm-core";
-import { inspectClientGetOutsideOfTry } from "./clientGetOutsideOfTry";
 
 /**
  * Initialize an sdm definition, and add functionality to it.
@@ -41,10 +40,10 @@ export function machine(
     });
 
     const codeInspect = new AutoCodeInspection();
-    codeInspect.with({
-        name: "no client.get outside of try/catch ",
-        inspection: inspectClientGetOutsideOfTry,
-    });
+    // codeInspect.with({
+    //     name: "no client.get outside of try/catch ",
+    //     inspection: inspectClientGetOutsideOfTry,
+    // });
 
     sdm.withPushRules(onAnyPush().setGoals(goals("stuff").plan(codeInspect)));
 
