@@ -35,7 +35,8 @@ export async function wrapInTry(p: Project,
         edited = true;
         const uc = unsafeCall as any as (Target & MatchResult); // TODO this won't be necessary after upgrading automation-client
         //const unsafeCallValue = unsafeCallTyped.$value.slice(unsafeCallTyped.endOfPreviousExpression.length);
-        unsafeCall.$value = `${uc.beforeMethodCall.declaredType} ${uc.beforeMethodCall.varname} = null;
+        unsafeCall.$value =
+            `${uc.beforeMethodCall.declaredType} ${uc.beforeMethodCall.varname} = ${javaInitialValue(uc.beforeMethodCall.declaredType)};
 try {
     ${uc.beforeMethodCall.varname} = ${(uc.fluentBuilderInvocation as FluentBuilderInvocation & MatchResult).$value}
 } finally {
@@ -44,6 +45,15 @@ try {
     }
 
     return { edited, success: true, target: p };
+}
+
+function javaInitialValue(type: string): string {
+    switch (type) {
+        case "int":
+            return "-1";
+        default:
+            return "null";
+    }
 }
 
 export interface FluentBuilderInvocation {

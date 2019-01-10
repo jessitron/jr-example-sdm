@@ -117,24 +117,28 @@ describe("inspectClientGetOutsideOfTry", () => {
     });
 
     it("contains the thing wrapped in tryFinally", async () => {
-        const shouldContain = `try {
-             String response = client.get("https://bananas.com")
+        const before = `  HorseguardsClient client = new HorseguardsClient();
+
+        String response = client.get("https://bananas.com")
+            .execute();
+
+        return "App running: Served from " + getClass().getName();`
+        const after = `String response = null;
+        try {
+             response = client.get("https://bananas.com")
                                      .execute(); 
         } finally { 
             if (response != null) { 
                 response.close()
              }
         }`;
-        const p = InMemoryProject.of({ path: "src/main/Something.java", content: OffendingJavaFile });
-        const result = await wrapInTry(p, {
+        const result = await transformJavaMethodBody(before, p => wrapInTry(p, {
             globPatterns: "**/*.java",
             initialMethodCall: "client.get",
             finallyContent: () => "if (response != null) { response.close() }"
-        });
-        assert(result.edited)
-        const newContent = p.findFileSync("src/main/Something.java").getContentSync();
+        }));
 
-        assert(normalizeWhitespace(newContent).includes(normalizeWhitespace(shouldContain)), newContent);
+        assert(normalizeWhitespace(result), normalizeWhitespace(after));
     });
 
     it("Wraps a stored response", async () => {
@@ -173,7 +177,7 @@ describe("inspectClientGetOutsideOfTry", () => {
 
         assert.strictEqual(normalizeWhitespace(actual), normalizeWhitespace(after));
 
-    })
+    });
 
 });
 
@@ -275,13 +279,13 @@ describe("tryify", () => {
     });
 
     describe("targeting within project", () => {
-        it("should replace", async () => {
+        it("should replace, initializing int to 0", async () => {
             const toWrap = `statusCode = client.get("http://example.org") 
                                      .execute() 
                                     .statusCode();`;
             const methodBody = `int ${toWrap}
             return statusCode;`
-            const replacement = `int statusCode = 0; 
+            const replacement = `int statusCode = -1; 
             try {
                 ${toWrap} 
             } finally {
