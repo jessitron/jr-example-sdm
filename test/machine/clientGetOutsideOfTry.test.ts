@@ -167,7 +167,27 @@ describe("inspectClientGetOutsideOfTry", () => {
 
     });
 
-    it("Should work when the return value is unused");
+    it("Should work when the return value is unused", async () => {
+        const before = `
+        client.get("https://bananas.com")
+                .execute();
+`;
+        const after = `
+        HorseguardsResponse response = null;
+        try {
+            response = client.get("https://bananas.com")
+                    .execute();
+        } finally {
+            if (response != null) {
+                response.close();
+            }
+        }
+`;
+        const actual = await transformJavaMethodBody(before, p => wrapInTry(p, commonOptions));
+
+        assert.strictEqual(normalizeWhitespace(actual), normalizeWhitespace(after));
+
+    });
 
     it("Should work when statusCode is stored in a var that is not declared right there")
 

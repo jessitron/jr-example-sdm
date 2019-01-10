@@ -1,5 +1,5 @@
 import { CodeTransform, TransformResult } from "@atomist/sdm";
-import { Microgrammar, takeUntil, zeroOrMore } from "@atomist/microgrammar";
+import { Microgrammar, takeUntil, zeroOrMore, optional } from "@atomist/microgrammar";
 import { JavaBlock } from "@atomist/microgrammar/lib/matchers/lang/cfamily/java/JavaBody";
 import { parenthesizedExpression } from "@atomist/microgrammar/lib/matchers/lang/cfamily/CBlock";
 import { astUtils, MatchResult, Project } from "@atomist/automation-client";
@@ -39,29 +39,47 @@ export async function wrapInTry(p: Project,
         const uc = unsafeCall as any as (Target & MatchResult); // TODO this won't be necessary after upgrading automation-client
 
         console.log("The rest of the statement is: " + uc.restOfStatement);
-        const moreCallsAreMade = (typeof uc.restOfStatement === "string" && uc.restOfStatement.length > 0);
-        const newValue = moreCallsAreMade ?
-            // declare a new variable to hold the call of doom
-            `${opts.returnType} ${opts.returnVariableName} = ${javaInitialValue(opts.returnType)};
-try {
-    ${opts.returnVariableName} = ${(uc.invocation as Invocation & MatchResult).$value};
-} finally {
-    ${opts.finallyContent(opts.returnVariableName)}
-}
-${uc.beforeMethodCall.declaredType} ${uc.beforeMethodCall.varname} = ${opts.returnVariableName}${uc.restOfStatement};
-` :
-            // use the variable they have already declared
-            `${uc.beforeMethodCall.declaredType} ${uc.beforeMethodCall.varname} = ${javaInitialValue(uc.beforeMethodCall.declaredType)};
-try {
-    ${uc.beforeMethodCall.varname} = ${(uc.invocation as Invocation & MatchResult).$value};
-} finally {
-    ${opts.finallyContent(uc.beforeMethodCall.varname)}
-}`.replace(/    /g, "\t");
 
-        unsafeCall.$value = newValue;
+
+        unsafeCall.$value = wrappedCall(opts, uc);
     }
 
     return { edited, success: true, target: p };
+}
+
+function wrappedCall(opts: {
+    returnType: string,
+    returnVariableName: string,
+    finallyContent: (varname: string) => string,
+}, uc: Target & MatchResult): string {
+    const moreCallsAreMade = (typeof uc.restOfStatement === "string" && uc.restOfStatement.length > 0);
+
+    const ResponseType = moreCallsAreMade ?
+        opts.returnType :
+        uc.beforeMethodCall.declaredType;
+
+    const response = moreCallsAreMade ?
+        opts.returnVariableName :
+        uc.beforeMethodCall.varname;
+
+    const init = javaInitialValue(ResponseType);
+
+    const wrappedCall = (uc.invocation as Invocation & MatchResult).$value;
+
+    const cleanup = opts.finallyContent(response);
+
+    const restOfStuff = moreCallsAreMade ?
+        `${uc.beforeMethodCall.declaredType} ${uc.beforeMethodCall.varname} = ${response}${uc.restOfStatement};` :
+        "";
+
+    return `${ResponseType} ${response} = ${init};
+    try {
+        ${response} = ${wrappedCall};
+    } finally {
+        ${cleanup}
+    }
+    ${restOfStuff}`
+
 }
 
 function javaInitialValue(type: string): string {
@@ -103,7 +121,7 @@ export function lhsEquals(): Microgrammar<{ declaredType: string, varname: strin
  */
 export function target(beginningOfCall: string, endOfCall: string): Microgrammar<Target> {
     return Microgrammar.fromDefinitions<Target>({
-        beforeMethodCall: lhsEquals(), // todo: optional
+        beforeMethodCall: optional(lhsEquals()),
         invocation: Microgrammar.fromDefinitions<Invocation>({
             beginningOfCall,
             rest: takeUntil(endOfCall),
