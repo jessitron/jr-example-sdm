@@ -1,8 +1,8 @@
 import * as assert from "assert";
-import { InMemoryProject, InMemoryProjectFile } from "@atomist/automation-client";
+import { InMemoryProject } from "@atomist/automation-client";
 import { CodeTransform, TransformResult } from "@atomist/sdm";
 import { normalizeWhitespace } from "../normalizeWhitespace";
-import { wrapInTry, fluentBuilderInvocation, lhsEquals, target, tryFinally } from "../../lib/machine/clientGetOutsideOfTry";
+import { wrapInTry, lhsEquals, target, tryFinally } from "../../lib/machine/clientGetOutsideOfTry";
 
 const SomeRandomJavaFile = `package com.jessitron.hg;
 
@@ -90,7 +90,10 @@ describe("inspectClientGetOutsideOfTry", () => {
         const p = InMemoryProject.of();
         const result = await wrapInTry(p, {
             globPatterns: "**/*.java",
-            initialMethodCall: "client.get",
+            beginningOfCall: "client.get(",
+            endOfCall: "execute()",
+            returnType: "HorseguardsController",
+            returnVariableName: "response",
             finallyContent: () => " abquatulate(); ",
         });
         assert(!result.edited);
@@ -100,7 +103,10 @@ describe("inspectClientGetOutsideOfTry", () => {
         const p = InMemoryProject.of({ path: "src/main/Something.java", content: SomeRandomJavaFile });
         const result = await wrapInTry(p, {
             globPatterns: "**/*.java",
-            initialMethodCall: "client.get",
+            beginningOfCall: "client.get(",
+            endOfCall: "execute()",
+            returnType: "HorseguardsController",
+            returnVariableName: "response",
             finallyContent: () => " abquatulate(); "
         });
         assert(!result.edited);
@@ -110,7 +116,10 @@ describe("inspectClientGetOutsideOfTry", () => {
         const p = InMemoryProject.of({ path: "src/main/Something.java", content: OffendingJavaFile });
         const result = await wrapInTry(p, {
             globPatterns: "**/*.java",
-            initialMethodCall: "client.get",
+            beginningOfCall: "client.get(",
+            endOfCall: "execute()",
+            returnType: "HorseguardsController",
+            returnVariableName: "response",
             finallyContent: () => " abquatulate(); "
         });
         assert(result.edited)
@@ -134,7 +143,10 @@ describe("inspectClientGetOutsideOfTry", () => {
         }`;
         const result = await transformJavaMethodBody(before, p => wrapInTry(p, {
             globPatterns: "**/*.java",
-            initialMethodCall: "client.get",
+            beginningOfCall: "client.get(",
+            endOfCall: "execute()",
+            returnType: "HorseguardsController",
+            returnVariableName: "response",
             finallyContent: () => "if (response != null) { response.close() }"
         }));
 
@@ -169,7 +181,10 @@ describe("inspectClientGetOutsideOfTry", () => {
 
         const actual = await transformJavaMethodBody(before, p => wrapInTry(p, {
             globPatterns: "**/*.java",
-            initialMethodCall: "client.get",
+            beginningOfCall: "client.get(",
+            endOfCall: "execute()",
+            returnType: "HorseguardsController",
+            returnVariableName: "response",
             finallyContent: () => `if (response != null) {
                 response.close();
             }`
@@ -202,39 +217,6 @@ class Foo {
 
 describe("tryify", () => {
 
-    describe("fluentBuilderInvocation", () => {
-
-        it("should not match", () => {
-            const input = "nothing to see here";
-            const mg = fluentBuilderInvocation("client.get");
-            assert.strictEqual(mg.findMatches(input).length, 0);
-        });
-
-        it("should find one match", () => {
-            const input = `int statusCode = client.get("http://example.org") 
-                                     .execute() 
-                                    .statusCode();    
-        return statusCode;`;
-            const mg = fluentBuilderInvocation("client.get");
-            const matches = mg.findMatches(input);
-            assert.strictEqual(matches.length, 1);
-            assert.strictEqual(matches[0].initialMethodCall, "client.get");
-            assert(matches[0].fluency.includes("execute"));
-            assert(matches[0].$matched.startsWith("client.get"));
-            assert(matches[0].$matched.endsWith(".statusCode();"));
-        });
-
-        it("should not match wrong initial call", () => {
-            const input = `int statusCode = client.notGet("http://example.org") 
-                                     .execute() 
-                                    .statusCode();    
-        return statusCode;`;
-            const mg = fluentBuilderInvocation("client.get");
-            assert.strictEqual(mg.findMatches(input).length, 0);
-        });
-
-    });
-
     describe("lhs equals", () => {
 
         it("should match", () => {
@@ -249,7 +231,7 @@ describe("tryify", () => {
 
         it("should not match", () => {
             const input = "nothing to see here";
-            const mg = target("client.get");
+            const mg = target("client.get", "yo");
             assert.strictEqual(mg.findMatches(input).length, 0);
         });
 
@@ -258,11 +240,11 @@ describe("tryify", () => {
                                      .execute() 
                                     .statusCode();    
         return statusCode;`;
-            const mg = target("client.get");
+            const mg = target("client.get", "statusCode()");
             const matches = mg.findMatches(input);
             assert.strictEqual(matches.length, 1);
-            assert.strictEqual(matches[0].fluentBuilderInvocation.initialMethodCall, "client.get");
-            assert(matches[0].fluentBuilderInvocation.fluency.includes("execute"));
+            assert.strictEqual(matches[0].invocation.beginningOfCall, "client.get");
+            assert(matches[0].invocation.rest.includes("execute"));
             assert(matches[0].$matched.startsWith("int statusCode ="));
             assert(matches[0].$matched.endsWith(".statusCode();"));
         });
@@ -272,32 +254,37 @@ describe("tryify", () => {
                                      .execute() 
                                     .statusCode();    
         return statusCode;`;
-            const mg = target("client.get");
+            const mg = target("client.get", "execute");
             assert.strictEqual(mg.findMatches(input).length, 0);
         });
 
     });
 
     describe("targeting within project", () => {
-        it("should replace, initializing int to 0", async () => {
-            const toWrap = `statusCode = client.get("http://example.org") 
-                                     .execute() 
-                                    .statusCode();`;
-            const methodBody = `int ${toWrap}
+
+        it("should pull out response variable", async () => {
+            const toStoreAsResponse = `client.get("http://example.org")
+                .execute()`;
+            const methodBody = `int statusCode = ${toStoreAsResponse}
+                                    .statusCode();
             return statusCode;`
-            const replacement = `int statusCode = -1; 
+            const replacement = `HorseguardsResponse response = null; 
             try {
-                ${toWrap} 
+                response = ${toStoreAsResponse} 
             } finally {
                 absquatulate();
             }
+            int statusCode = response. statusCode();
             return statusCode;`;
 
 
             const result = await transformJavaMethodBody(methodBody, p => wrapInTry(p, {
                 globPatterns: "**/*.java",
-                initialMethodCall: "client.get",
-                finallyContent: () => "absquatulate();",
+                beginningOfCall: "client.get(",
+                endOfCall: "execute()",
+                returnType: "HorseguardsResponse",
+                returnVariableName: "response",
+                finallyContent: () => "absquatulate(response);",
             }))
 
             assert.strictEqual(normalizeWhitespace(result), normalizeWhitespace(replacement));

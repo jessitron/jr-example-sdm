@@ -15,13 +15,16 @@ import { notWithin } from "@atomist/automation-client/lib/tree/ast/matchTesters"
 export async function wrapInTry(p: Project,
     opts: {
         globPatterns: GlobOptions,
-        initialMethodCall: string,
+        beginningOfCall: string,
+        endOfCall: string,
+        returnType: string,
+        returnVariableName: string,
         finallyContent: (tryContent: string) => string,
     }): Promise<TransformResult> {
     // This will benefit from optimized parsing: Only files containing the @value will be parsed
-    const pathExpression = `//unsafeCall[//initialMethodCall[@value='${opts.initialMethodCall}']]`;
+    const pathExpression = `//unsafeCall[//beginningOfCall[@value='${opts.beginningOfCall}']]`;
     const parseWith = new MicrogrammarBasedFileParser("match", "unsafeCall",
-        target(opts.initialMethodCall));
+        target(opts.beginningOfCall, opts.endOfCall));
 
     // TODO will be able to type matchIterator with latest automation-client
     const unsafeCalls = astUtils.matchIterator(p, {
@@ -38,7 +41,7 @@ export async function wrapInTry(p: Project,
         unsafeCall.$value =
             `${uc.beforeMethodCall.declaredType} ${uc.beforeMethodCall.varname} = ${javaInitialValue(uc.beforeMethodCall.declaredType)};
 try {
-    ${uc.beforeMethodCall.varname} = ${(uc.fluentBuilderInvocation as FluentBuilderInvocation & MatchResult).$value}
+    ${uc.beforeMethodCall.varname} = ${(uc.invocation as Invocation & MatchResult).$value}${(uc.restOfStatement).$value};
 } finally {
     ${opts.finallyContent("")}
 }`.replace(/    /g, "\t");
@@ -56,36 +59,16 @@ function javaInitialValue(type: string): string {
     }
 }
 
-export interface FluentBuilderInvocation {
-    initialMethodCall: string;
-    fluency: string;
-}
-
-/**
- * Match a call of the form
- * client.get("http://example.org")
- * .execute()
- * .statusCode();
- *
- * where client.get is initialMethodCall
- *
- * Don't pull more detail out than needed
- * @param {string} initialMethodCall
- */
-export function fluentBuilderInvocation(initialMethodCall: string): Microgrammar<FluentBuilderInvocation> {
-    return Microgrammar.fromDefinitions<FluentBuilderInvocation>({
-        initialMethodCall,
-        param: "(",
-        fluency: takeUntil("();"),
-        end: "();",
-    });
-}
-
 export interface Target {
     beforeMethodCall: { declaredType: string, varname: string };
-    fluentBuilderInvocation: FluentBuilderInvocation;
+    invocation: Invocation;
+    restOfStatement: MatchResult;
 }
-
+export interface Invocation {
+    beginningOfCall: string,
+    rest: string,
+    endOfCall: string,
+}
 // TODO correct that
 const JavaIdentifier = /[a-zA-Z0-9]+/;
 
@@ -99,15 +82,21 @@ export function lhsEquals(): Microgrammar<{ declaredType: string, varname: strin
 /**
  * Match target of form:
  *
- * int returnCode = <fluent builder production>
+ * int returnCode = <beginningOfCall>..<endOfCall>...;
  *
  * @param {string} initialMethodCall
  * @return {Microgrammar<Target>}
  */
-export function target(initialMethodCall: string): Microgrammar<Target> {
+export function target(beginningOfCall: string, endOfCall: string): Microgrammar<Target> {
     return Microgrammar.fromDefinitions<Target>({
         beforeMethodCall: lhsEquals(), // todo: optional
-        fluentBuilderInvocation: fluentBuilderInvocation(initialMethodCall),
+        invocation: Microgrammar.fromDefinitions<Invocation>({
+            beginningOfCall,
+            rest: takeUntil(endOfCall),
+            endOfCall,
+        }),
+        restOfStatement: takeUntil(";"),
+        end: ";",
     });
 }
 
@@ -124,9 +113,6 @@ export function tryFinally(): Microgrammar<{ tryBlock: string, finallyBlock: str
         finallyBlock: JavaBlock,
     });
 }
-
-// it's something like <identifier> = fluentBuilderInvocation; return <identifier>;
-//const unsafeStatementGrammar = Microgrammar.fromString();
 
 export const tryify: CodeTransform =
     async p => {
