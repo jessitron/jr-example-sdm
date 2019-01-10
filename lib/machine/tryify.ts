@@ -1,13 +1,11 @@
-import { TargetBuilderMG } from './tryify';
 import { CodeTransform, TransformResult } from "@atomist/sdm";
 import { Microgrammar, takeUntil, zeroOrMore } from "@atomist/microgrammar";
 import { JavaBlock } from "@atomist/microgrammar/lib/matchers/lang/cfamily/java/JavaBody";
 import { parenthesizedExpression } from "@atomist/microgrammar/lib/matchers/lang/cfamily/CBlock";
-import { astUtils, Project, MatchResult } from "@atomist/automation-client";
+import { astUtils, MatchResult, Project } from "@atomist/automation-client";
 import { GlobOptions } from "@atomist/automation-client/lib/project/util/projectUtils";
 import { MicrogrammarBasedFileParser } from "@atomist/automation-client/lib/tree/ast/microgrammar/MicrogrammarBasedFileParser";
 import { notWithin } from "@atomist/automation-client/lib/tree/ast/matchTesters";
-import { JavaIdentifierRegExp } from "@atomist/sdm-pack-spring";
 
 /**
  * Wrap the function in a try
@@ -21,25 +19,26 @@ export async function wrapInTry(p: Project,
                                     finallyContent: (tryContent: string) => string,
                                 }): Promise<TransformResult> {
     // This will benefit from optimized parsing: Only files containing the @value will be parsed
-    const pathExpression = `//unsafeCall[/initialMethodCall[@value='${opts.initialMethodCall}']]`;
+    const pathExpression = `//unsafeCall[//initialMethodCall[@value='${opts.initialMethodCall}']]`;
     const parseWith = new MicrogrammarBasedFileParser("match", "unsafeCall",
-        fluentBuilderInvocation(opts.initialMethodCall));
+        target(opts.initialMethodCall));
 
+    // TODO will be able to type matchIterator with latest automation-client
     const unsafeCalls = astUtils.matchIterator(p, {
         globPatterns: opts.globPatterns,
         pathExpression,
         parseWith,
-        testWith: notWithin(tryFinally())
+        testWith: notWithin(tryFinally()),
     });
     let edited = false;
     for await (const unsafeCall of unsafeCalls) {
         edited = true;
-        const unsafeCallTyped = unsafeCall as unknown as MatchResult & TargetBuilderMG;
-        const unsafeCallValue = unsafeCallTyped.$value.slice(unsafeCallTyped.endOfPreviousExpression.length);
-        unsafeCall.$value = unsafeCallTyped.endOfPreviousExpression + ` try { ${unsafeCallValue} } finally { ${opts.finallyContent(unsafeCallValue)} }`;
+        const uc = unsafeCall as any as (Target & MatchResult); // TODO this won't be necessary after upgrading automation-client
+        //const unsafeCallValue = unsafeCallTyped.$value.slice(unsafeCallTyped.endOfPreviousExpression.length);
+        unsafeCall.$value = `try { ${uc.$value} } finally { ${opts.finallyContent("")} }`;
     }
 
-    return { edited, success: true, target: p }
+    return { edited, success: true, target: p };
 }
 
 export interface FluentBuilderInvocation {
@@ -82,6 +81,14 @@ export function lhsEquals(): Microgrammar<any> {
     });
 }
 
+/**
+ * Match target of form:
+ *
+ * int returnCode = <fluent builder production>
+ *
+ * @param {string} initialMethodCall
+ * @return {Microgrammar<Target>}
+ */
 export function target(initialMethodCall: string): Microgrammar<Target> {
     return Microgrammar.fromDefinitions<Target>({
         beforeMethodCall: lhsEquals(),

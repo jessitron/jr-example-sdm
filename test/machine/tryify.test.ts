@@ -83,21 +83,27 @@ describe("tryify", () => {
 
     });
 
-    describe.skip("targeting within project", () => {
+    describe("targeting within project", () => {
 
         it("should replace", async () => {
             const toMatch = `client.get("http://example.org") 
                                      .execute() 
                                     .statusCode();`;
             const replacement = `try { ${toMatch} } finally { absquatulate(); }`;
-            const java1 = new InMemoryProjectFile("src/main/java/Thing.java", `public class Thing { ${toMatch} }`);
+            const java1 = new InMemoryProjectFile("src/main/java/Thing.java",
+                `public class Thing { int statusCode = ${toMatch} }`);
             const p = InMemoryProject.of(java1);
 
             const globPatterns = "src/main/java/**/*.java";
-            await wrapInTry(p, { globPatterns, initialMethodCall: "client.get", finallyContent: () => "absquatulate();" });
+            await wrapInTry(p, {
+                globPatterns,
+                initialMethodCall: "client.get",
+                finallyContent: () => "absquatulate();",
+            });
 
             const java1Now = await p.getFile(java1.path);
             const contentNow = java1Now.getContentSync();
+            console.log("NOW=" + contentNow);
             const fromTry = contentNow.substr(contentNow.indexOf("try"));
             assert.strictEqual(fromTry, replacement.substr(replacement.indexOf("try")) + " }");
         });
