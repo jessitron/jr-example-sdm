@@ -189,7 +189,33 @@ describe("inspectClientGetOutsideOfTry", () => {
 
     });
 
-    it("Should work when statusCode is stored in a var that is not declared right there")
+    it.skip("Should work when statusCode is stored in a var that is not declared right there", async () => {
+        // this gets hard, and is probably not necessary
+        const before = `
+        int statusCode = 4000005;
+
+        statusCode = client.get("https://bananas.com")
+                .execute().statusCode();
+`;
+        const after = `
+        int statusCode = 4000005;
+
+        HorseguardsResponse response = null;
+        try {
+            response = client.get("https://bananas.com")
+                    .execute();
+        } finally {
+            if (response != null) {
+                response.close();
+            }
+        }
+        statusCode = response.statusCode();
+`;
+        const actual = await transformJavaMethodBody(before, p => wrapInTry(p, commonOptions));
+
+        assert.strictEqual(normalizeWhitespace(actual), normalizeWhitespace(after));
+
+    })
 
 });
 

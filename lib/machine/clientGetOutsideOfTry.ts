@@ -111,7 +111,7 @@ const JavaIdentifier = /[a-zA-Z0-9]+/;
 
 export function lhsEquals(): Microgrammar<{ declaredType: string, varname: string }> {
     return Microgrammar.fromString<{ declaredType: string, varname: string }>("${declaredType} ${varname} =", {
-        declaredType: JavaIdentifier, // todo: optional
+        declaredType: JavaIdentifier,
         varname: JavaIdentifier,
     });
 }
