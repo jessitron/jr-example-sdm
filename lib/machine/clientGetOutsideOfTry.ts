@@ -37,13 +37,8 @@ export async function wrapInTry(p: Project,
     for await (const unsafeCall of unsafeCalls) {
         edited = true;
         const uc = unsafeCall as any as (Target & MatchResult); // TODO this won't be necessary after upgrading automation-client
-
-        console.log("The rest of the statement is: " + uc.restOfStatement);
-
-
         unsafeCall.$value = wrappedCall(opts, uc);
     }
-
     return { edited, success: true, target: p };
 }
 
@@ -55,19 +50,14 @@ function wrappedCall(opts: {
     const moreCallsAreMade = (typeof uc.restOfStatement === "string" && uc.restOfStatement.length > 0);
 
     const ResponseType = opts.returnType; // capitalized to make it look like what it represents
-
     const response = moreCallsAreMade ?
         opts.returnVariableName :
         storesReturnValue(uc) ?
             uc.beforeMethodCall.varname :
             opts.returnVariableName;
-
     const init = javaInitialValue(ResponseType);
-
     const wrappedCall = (uc.invocation as Invocation & MatchResult).$value;
-
     const cleanup = opts.finallyContent(response);
-
     const restOfStuff = moreCallsAreMade ?
         `${uc.beforeMethodCall.declaredType} ${uc.beforeMethodCall.varname} = ${response}${uc.restOfStatement};` :
         "";
@@ -78,13 +68,11 @@ function wrappedCall(opts: {
     } finally {
         ${cleanup}
     }
-    ${restOfStuff}`
-
+    ${restOfStuff}`;
 }
 
 function storesReturnValue(uc: Target): boolean {
     return !!(uc.beforeMethodCall && uc.beforeMethodCall.varname);
-
 }
 
 function javaInitialValue(type: string): string {
@@ -95,7 +83,6 @@ function javaInitialValue(type: string): string {
             return "null";
     }
 }
-
 export interface Target {
     beforeMethodCall: { declaredType: string, varname: string };
     invocation: Invocation;
