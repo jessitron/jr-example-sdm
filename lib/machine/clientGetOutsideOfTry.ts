@@ -106,7 +106,10 @@ export function lhsEquals(): Microgrammar<{ declaredType: string, varname: strin
 /**
  * Match target of form:
  *
- * int returnCode = <beginningOfCall>..<endOfCall>...;
+ * int returnCode = <beginningOfCall>...<endOfCall>...;
+ * 
+ * where "int" can be any type, and "returnCode" can be any variable name.
+ * The whole "int returnCode =" part is optional.
  *
  * @param {string} initialMethodCall
  * @return {Microgrammar<Target>}
@@ -138,7 +141,14 @@ export function tryFinally(): Microgrammar<{ tryBlock: string, finallyBlock: str
     });
 }
 
-export const tryify: CodeTransform =
+export const closeAllClientResponses: CodeTransform =
     async p => {
-        return p;
+        return wrapInTry(p, {
+            globPatterns: "**/*.java",
+            beginningOfCall: "client.get(",
+            endOfCall: "execute()",
+            returnType: "HorseguardsResponse", // Change this to match your library of interest
+            returnVariableName: "response",
+            finallyContent: (v: string) => `if (${v} != null) { ${v}.close(); }`,
+        });
     };

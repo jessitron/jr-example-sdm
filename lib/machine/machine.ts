@@ -17,13 +17,11 @@
 import {
     SoftwareDeliveryMachine,
     SoftwareDeliveryMachineConfiguration,
-    AutoCodeInspection,
-    onAnyPush,
-    goals,
 } from "@atomist/sdm";
 import {
     createSoftwareDeliveryMachine,
 } from "@atomist/sdm-core";
+import { closeAllClientResponses } from "./clientGetOutsideOfTry";
 
 /**
  * Initialize an sdm definition, and add functionality to it.
@@ -35,23 +33,16 @@ export function machine(
 ): SoftwareDeliveryMachine {
 
     const sdm = createSoftwareDeliveryMachine({
-        name: "Empty Seed Software Delivery Machine",
+        name: "Single Transform Software Delivery Machine",
         configuration,
     });
 
-    const codeInspect = new AutoCodeInspection();
-    // codeInspect.with({
-    //     name: "no client.get outside of try/catch ",
-    //     inspection: inspectClientGetOutsideOfTry,
-    // });
-
-    sdm.withPushRules(onAnyPush().setGoals(goals("stuff").plan(codeInspect)));
-
-    /*
-     * this is a good place to type
-    sdm.
-     * and see what the IDE suggests for after the dot
-     */
+    sdm.addCodeTransformCommand({
+        name: "closeAllClientResponses",
+        transform: closeAllClientResponses,
+        intent: "ensure responses are closed",
+        description: "Ensure all calls to client.get() are wrapped in a try/finally block that closes the responses",
+    });
 
     return sdm;
 }
