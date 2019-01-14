@@ -56,7 +56,7 @@ function wrappedCall(opts: {
             uc.beforeMethodCall.varname :
             opts.returnVariableName;
     const init = javaInitialValue(ResponseType);
-    const wrappedCall = (uc.invocation as Invocation & MatchResult).$value;
+    const wrappedCall = (uc.invocation as any).$matched;
     const cleanup = opts.finallyContent(response);
     const restOfStuff = moreCallsAreMade ?
         `${uc.beforeMethodCall.declaredType} ${uc.beforeMethodCall.varname} = ${response}${uc.restOfStatement};` :
