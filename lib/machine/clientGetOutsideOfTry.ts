@@ -26,8 +26,7 @@ export async function wrapInTry(p: Project,
     const parseWith = new MicrogrammarBasedFileParser("match", "unsafeCall",
         target(opts.beginningOfCall, opts.endOfCall));
 
-    // TODO will be able to type matchIterator with latest automation-client
-    const unsafeCalls = astUtils.matchIterator(p, {
+    const unsafeCalls = astUtils.matchIterator<Target>(p, {
         globPatterns: opts.globPatterns,
         pathExpression,
         parseWith,
@@ -36,8 +35,7 @@ export async function wrapInTry(p: Project,
     let edited = false;
     for await (const unsafeCall of unsafeCalls) {
         edited = true;
-        const uc = unsafeCall as any as (Target & MatchResult); // TODO this won't be necessary after upgrading automation-client
-        unsafeCall.$value = wrappedCall(opts, uc);
+        unsafeCall.$value = wrappedCall(opts, unsafeCall);
     }
     return { edited, success: true, target: p };
 }
@@ -46,7 +44,7 @@ function wrappedCall(opts: {
     returnType: string,
     returnVariableName: string,
     finallyContent: (varname: string) => string,
-}, uc: Target & MatchResult): string {
+}, uc: Target): string {
     const moreCallsAreMade = (typeof uc.restOfStatement === "string" && uc.restOfStatement.length > 0);
 
     const ResponseType = opts.returnType; // capitalized to make it look like what it represents
