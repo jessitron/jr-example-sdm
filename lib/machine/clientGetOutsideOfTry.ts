@@ -1,3 +1,4 @@
+// tslint:disable:no-invalid-template-strings
 import { astUtils, Project } from "@atomist/automation-client";
 import { GlobOptions } from "@atomist/automation-client/lib/project/util/projectUtils";
 import { notWithin } from "@atomist/automation-client/lib/tree/ast/matchTesters";
@@ -14,7 +15,7 @@ import { CodeTransform, TransformResult } from "@atomist/sdm";
  * @return {Promise<void>}
  */
 export async function wrapInTry(p: Project,
-                                opts: {
+    opts: {
         globPatterns: GlobOptions,
         beginningOfCall: string,
         endOfCall: string,
@@ -45,7 +46,7 @@ function wrappedCall(opts: {
     returnType: string,
     returnVariableName: string,
     finallyContent: (varname: string) => string,
-},                   uc: Target): string {
+}, uc: Target): string {
     const moreCallsAreMade = (typeof uc.restOfStatement === "string" && uc.restOfStatement.length > 0);
 
     const ResponseType = opts.returnType; // capitalized to make it look like what it represents
@@ -55,7 +56,7 @@ function wrappedCall(opts: {
             uc.beforeMethodCall.varname :
             opts.returnVariableName;
     const init = javaInitialValue(ResponseType);
-    const wrappedCall = (uc.invocation as unknown as PatternMatch).$matched;
+    const originalCall = (uc.invocation as unknown as PatternMatch).$matched;
     const cleanup = opts.finallyContent(response);
     const restOfStuff = moreCallsAreMade ?
         `${uc.beforeMethodCall.declaredType} ${uc.beforeMethodCall.varname} = ${response}${uc.restOfStatement};` :
@@ -63,7 +64,7 @@ function wrappedCall(opts: {
 
     return `${ResponseType} ${response} = ${init};
     try {
-        ${response} = ${wrappedCall};
+        ${response} = ${originalCall};
     } finally {
         ${cleanup}
     }
