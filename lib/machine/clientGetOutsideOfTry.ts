@@ -2,10 +2,11 @@ import { CodeTransform, TransformResult } from "@atomist/sdm";
 import { Microgrammar, takeUntil, zeroOrMore, optional } from "@atomist/microgrammar";
 import { JavaBlock } from "@atomist/microgrammar/lib/matchers/lang/cfamily/java/JavaBody";
 import { parenthesizedExpression } from "@atomist/microgrammar/lib/matchers/lang/cfamily/CBlock";
-import { astUtils, MatchResult, Project } from "@atomist/automation-client";
+import { astUtils, Project } from "@atomist/automation-client";
 import { GlobOptions } from "@atomist/automation-client/lib/project/util/projectUtils";
 import { MicrogrammarBasedFileParser } from "@atomist/automation-client/lib/tree/ast/microgrammar/MicrogrammarBasedFileParser";
 import { notWithin } from "@atomist/automation-client/lib/tree/ast/matchTesters";
+import { PatternMatch } from "@atomist/microgrammar/lib/PatternMatch"
 
 /**
  * Wrap the function in a try
@@ -54,7 +55,7 @@ function wrappedCall(opts: {
             uc.beforeMethodCall.varname :
             opts.returnVariableName;
     const init = javaInitialValue(ResponseType);
-    const wrappedCall = (uc.invocation as any).$matched;
+    const wrappedCall = (uc.invocation as unknown as PatternMatch).$matched;
     const cleanup = opts.finallyContent(response);
     const restOfStuff = moreCallsAreMade ?
         `${uc.beforeMethodCall.declaredType} ${uc.beforeMethodCall.varname} = ${response}${uc.restOfStatement};` :
