@@ -7,11 +7,11 @@ export function normalizeWhitespace(str: string): string {
 describe("normalizeWhitespace", () => {
     it("replaces each whitespace patch with a single space", () => {
         const input = `  some stuff
-     and then more stuff;  
+     and then more stuff;
            and yet more
            `;
 
         const expected = "some stuff and then more stuff; and yet more";
         assert.strictEqual(normalizeWhitespace(input), expected);
-    })
-})
+    });
+});

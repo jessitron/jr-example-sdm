@@ -1,8 +1,8 @@
-import * as assert from "assert";
 import { InMemoryProject } from "@atomist/automation-client";
 import { CodeTransform, TransformResult } from "@atomist/sdm";
+import * as assert from "assert";
+import { lhsEquals, target, tryFinally, wrapInTry } from "../../lib/machine/clientGetOutsideOfTry";
 import { normalizeWhitespace } from "../normalizeWhitespace";
-import { wrapInTry, lhsEquals, target, tryFinally } from "../../lib/machine/clientGetOutsideOfTry";
 
 const SomeRandomJavaFile = `package com.jessitron.hg;
 
@@ -31,7 +31,7 @@ class HorseguardsController {
     }
 
 }
-`
+`;
 
 const OffendingJavaFile = `package com.jessitron.hg;
 
@@ -84,7 +84,7 @@ class HorseguardsController {
     }
 
 }
-`
+`;
 
 const commonOptions = {
     globPatterns: "**/*.java",
@@ -111,7 +111,7 @@ describe("inspectClientGetOutsideOfTry", () => {
     it("does care about call to client.get", async () => {
         const p = InMemoryProject.of({ path: "src/main/Something.java", content: OffendingJavaFile });
         const result = await wrapInTry(p, commonOptions);
-        assert(result.edited)
+        assert(result.edited);
     });
 
     it("contains the thing wrapped in tryFinally", async () => {
@@ -120,13 +120,13 @@ describe("inspectClientGetOutsideOfTry", () => {
         String response = client.get("https://bananas.com")
             .execute();
 
-        return "App running: Served from " + getClass().getName();`
+        return "App running: Served from " + getClass().getName();`;
         const after = `String response = null;
         try {
              response = client.get("https://bananas.com")
-                                     .execute(); 
-        } finally { 
-            if (response != null) { 
+                                     .execute();
+        } finally {
+            if (response != null) {
                 response.close()
              }
         }`;
@@ -215,10 +215,9 @@ describe("inspectClientGetOutsideOfTry", () => {
 
         assert.strictEqual(normalizeWhitespace(actual), normalizeWhitespace(after));
 
-    })
+    });
 
 });
-
 
 async function transformJavaMethodBody(methodDefinition: string, transform: CodeTransform): Promise<string> {
     const prefix = `package la.la.la;
@@ -229,10 +228,10 @@ class Foo {
     const suffix = "\n    }\n}\n";
     const p = InMemoryProject.of({
         path: "src/main/Something.java",
-        content: prefix + methodDefinition + suffix
+        content: prefix + methodDefinition + suffix,
     });
     const result = await transform(p, undefined);
-    assert((result as TransformResult).edited)
+    assert((result as TransformResult).edited);
     const newContent = p.findFileSync("src/main/Something.java").getContentSync();
 
     return newContent.slice(prefix.length, newContent.length - suffix.length);
@@ -259,9 +258,9 @@ describe("tryify", () => {
         });
 
         it("should find one match", () => {
-            const input = `int statusCode = client.get("http://example.org") 
-                                     .execute() 
-                                    .statusCode();    
+            const input = `int statusCode = client.get("http://example.org")
+                                     .execute()
+                                    .statusCode();
         return statusCode;`;
             const mg = target("client.get", "statusCode()");
             const matches = mg.findMatches(input);
@@ -273,9 +272,9 @@ describe("tryify", () => {
         });
 
         it("should not match wrong initial call", () => {
-            const input = `int statusCode = client.notGet("http://example.org") 
-                                     .execute() 
-                                    .statusCode();    
+            const input = `int statusCode = client.notGet("http://example.org")
+                                     .execute()
+                                    .statusCode();
         return statusCode;`;
             const mg = target("client.get", "execute");
             assert.strictEqual(mg.findMatches(input).length, 0);
@@ -289,8 +288,8 @@ describe("tryify", () => {
             const toStoreAsResponse = `client.get("http://example.org")
                 .execute()`;
             const methodBody = `int statusCode = ${toStoreAsResponse}.statusCode();
-            return statusCode;`
-            const replacement = `HorseguardsResponse response = null; 
+            return statusCode;`;
+            const replacement = `HorseguardsResponse response = null;
             try {
                 response = ${toStoreAsResponse};
             } finally {
@@ -299,7 +298,6 @@ describe("tryify", () => {
             int statusCode = response.statusCode();
             return statusCode;`;
 
-
             const result = await transformJavaMethodBody(methodBody, p => wrapInTry(p, {
                 globPatterns: "**/*.java",
                 beginningOfCall: "client.get(",
@@ -307,7 +305,7 @@ describe("tryify", () => {
                 returnType: "HorseguardsResponse",
                 returnVariableName: "response",
                 finallyContent: () => "absquatulate(response);",
-            }))
+            }));
 
             assert.strictEqual(normalizeWhitespace(result), normalizeWhitespace(replacement));
         });

@@ -1,12 +1,12 @@
-import { CodeTransform, TransformResult } from "@atomist/sdm";
-import { Microgrammar, takeUntil, zeroOrMore, optional } from "@atomist/microgrammar";
-import { JavaBlock } from "@atomist/microgrammar/lib/matchers/lang/cfamily/java/JavaBody";
-import { parenthesizedExpression } from "@atomist/microgrammar/lib/matchers/lang/cfamily/CBlock";
 import { astUtils, Project } from "@atomist/automation-client";
 import { GlobOptions } from "@atomist/automation-client/lib/project/util/projectUtils";
-import { MicrogrammarBasedFileParser } from "@atomist/automation-client/lib/tree/ast/microgrammar/MicrogrammarBasedFileParser";
 import { notWithin } from "@atomist/automation-client/lib/tree/ast/matchTesters";
-import { PatternMatch } from "@atomist/microgrammar/lib/PatternMatch"
+import { MicrogrammarBasedFileParser } from "@atomist/automation-client/lib/tree/ast/microgrammar/MicrogrammarBasedFileParser";
+import { Microgrammar, optional, takeUntil, zeroOrMore } from "@atomist/microgrammar";
+import { parenthesizedExpression } from "@atomist/microgrammar/lib/matchers/lang/cfamily/CBlock";
+import { JavaBlock } from "@atomist/microgrammar/lib/matchers/lang/cfamily/java/JavaBody";
+import { PatternMatch } from "@atomist/microgrammar/lib/PatternMatch";
+import { CodeTransform, TransformResult } from "@atomist/sdm";
 
 /**
  * Wrap the function in a try
@@ -14,7 +14,7 @@ import { PatternMatch } from "@atomist/microgrammar/lib/PatternMatch"
  * @return {Promise<void>}
  */
 export async function wrapInTry(p: Project,
-    opts: {
+                                opts: {
         globPatterns: GlobOptions,
         beginningOfCall: string,
         endOfCall: string,
@@ -45,7 +45,7 @@ function wrappedCall(opts: {
     returnType: string,
     returnVariableName: string,
     finallyContent: (varname: string) => string,
-}, uc: Target): string {
+},                   uc: Target): string {
     const moreCallsAreMade = (typeof uc.restOfStatement === "string" && uc.restOfStatement.length > 0);
 
     const ResponseType = opts.returnType; // capitalized to make it look like what it represents
@@ -88,9 +88,9 @@ export interface Target {
     restOfStatement: string;
 }
 export interface Invocation {
-    beginningOfCall: string,
-    rest: string,
-    endOfCall: string,
+    beginningOfCall: string;
+    rest: string;
+    endOfCall: string;
 }
 // TODO correct that
 const JavaIdentifier = /[a-zA-Z0-9]+/;
@@ -106,7 +106,7 @@ export function lhsEquals(): Microgrammar<{ declaredType: string, varname: strin
  * Match target of form:
  *
  * int returnCode = <beginningOfCall>...<endOfCall>...;
- * 
+ *
  * where "int" can be any type, and "returnCode" can be any variable name.
  * The whole "int returnCode =" part is optional.
  *

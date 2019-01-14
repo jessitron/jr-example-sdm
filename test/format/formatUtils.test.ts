@@ -1,5 +1,5 @@
-import { appendFormatted, DefaultIndentUnit, formatAtEndOf, insertFormatted } from "../../lib/format/formatUtils";
 import * as assert from "assert";
+import { appendFormatted, DefaultIndentUnit, formatAtEndOf, insertFormatted } from "../../lib/format/formatUtils";
 
 describe("formatUtils", () => {
 
