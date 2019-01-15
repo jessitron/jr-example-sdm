@@ -82,6 +82,12 @@ export function insertFormatted(s: string, offset: number, what: string): string
     return insertAt(s, offset, indent(what, fp));
 }
 
+export function replaceFormatted(s: string, offset: number, replaceThisString: string, withThisString: string): string {
+    const fp = formatAt(s, offset);
+    const removed = s.slice(0, offset) + s.slice(offset + replaceThisString.length);
+    return insertAt(removed, offset, indent(withThisString, fp));
+}
+
 /**
  * Append to given string, detecting and honoring its formatting
  * @param left string to append to

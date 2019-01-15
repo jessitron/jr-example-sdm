@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { appendFormatted, DefaultIndentUnit, formatAtEndOf, insertFormatted } from "../../lib/format/formatUtils";
+import { appendFormatted, DefaultIndentUnit, formatAtEndOf, insertFormatted, replaceFormatted } from "../../lib/format/formatUtils";
 
 describe("formatUtils", () => {
 
@@ -33,6 +33,27 @@ class Foo {
         })
 
     });
+
+    describe("replaceFormatted", () => {
+        it("should replace a string, with formatting", () => {
+            const input = `package la.la;
+
+class Foo {
+    public String blah = "deblah";
+}`;
+            const replaceMe = `public String blah = "deblah";`;
+            const startOfReplacement = input.indexOf(replaceMe);
+            const r = replaceFormatted(input, startOfReplacement, replaceMe, "public int code = 4;")
+
+            const after = `package la.la;
+
+class Foo {
+    public int code = 4;
+}`;
+
+            assert.strictEqual(r, after);
+        });
+    })
 
     describe("appendFormatted", () => {
 
@@ -68,15 +89,15 @@ class Foo {
             const indent = "   ";
 
             it("should append indented", () => {
-                const left = `public class Foo\n${indent}int i = 0;`;
+                const left = `public class Foo\n${indent} int i = 0;`;
                 const r = appendFormatted(left, "\nint j = 1;\n");
-                assert.strictEqual(r, left + `\n${indent}int j = 1;\n`);
+                assert.strictEqual(r, left + `\n${indent} int j = 1;\n`);
             });
 
             it("should insert double indented", () => {
-                const left = `public class Foo\n${indent}int i = 0;`;
+                const left = `public class Foo\n${indent} int i = 0;`;
                 const r = appendFormatted(left, "\nint j = 1;\n\tx\n");
-                assert.strictEqual(r, left + `\n${indent}int j = 1;\n${indent}${indent}x\n`);
+                assert.strictEqual(r, left + `\n${indent} int j = 1;\n${indent} ${indent} x\n`);
             });
 
         });
