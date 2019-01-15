@@ -20,6 +20,18 @@ describe("formatUtils", () => {
             assert.strictEqual(r, "a=b");
         });
 
+        it("should insert with indentation", () => {
+            const input = `package la.la;
+
+class Foo {
+    public String blah = "deblah";
+}`;
+            const afterLastDeclaration = input.lastIndexOf(";") + 2;
+            const r = insertFormatted(input, afterLastDeclaration, "public int code = 4;\n")
+
+            assert(r.includes("\n    public int code = 4;\n"), r);
+        })
+
     });
 
     describe("appendFormatted", () => {
