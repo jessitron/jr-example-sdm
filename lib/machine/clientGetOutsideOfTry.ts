@@ -26,9 +26,9 @@ export async function wrapInTry(p: Project,
     // This will benefit from optimized parsing: Only files containing the @value will be parsed
     const pathExpression = `//unsafeCall[//beginningOfCall[@value='${opts.beginningOfCall}']]`;
     const parseWith = new MicrogrammarBasedFileParser("match", "unsafeCall",
-        target(opts.beginningOfCall, opts.endOfCall));
+        unsafeCallMicrogrammar(opts.beginningOfCall, opts.endOfCall));
 
-    const unsafeCalls = astUtils.matchIterator<Target>(p, {
+    const unsafeCalls = astUtils.matchIterator<UnsafeCall>(p, {
         globPatterns: opts.globPatterns,
         pathExpression,
         parseWith,
@@ -46,7 +46,7 @@ function wrappedCall(opts: {
     returnType: string,
     returnVariableName: string,
     finallyContent: (varname: string) => string,
-}, uc: Target): string {
+}, uc: UnsafeCall): string {
     const moreCallsAreMade = (typeof uc.restOfStatement === "string" && uc.restOfStatement.length > 0);
 
     const ResponseType = opts.returnType; // capitalized to make it look like what it represents
@@ -71,7 +71,7 @@ function wrappedCall(opts: {
     ${restOfStuff}`;
 }
 
-function storesReturnValue(uc: Target): boolean {
+function storesReturnValue(uc: UnsafeCall): boolean {
     return !!(uc.beforeMethodCall && uc.beforeMethodCall.varname);
 }
 
@@ -83,7 +83,7 @@ function javaInitialValue(type: string): string {
             return "null";
     }
 }
-export interface Target {
+export interface UnsafeCall {
     beforeMethodCall: { declaredType: string, varname: string };
     invocation: Invocation;
     restOfStatement: string;
@@ -112,10 +112,10 @@ export function lhsEquals(): Microgrammar<{ declaredType: string, varname: strin
  * The whole "int returnCode =" part is optional.
  *
  * @param {string} initialMethodCall
- * @return {Microgrammar<Target>}
+ * @return {Microgrammar<UnsafeCall>}
  */
-export function target(beginningOfCall: string, endOfCall: string): Microgrammar<Target> {
-    return Microgrammar.fromDefinitions<Target>({
+export function unsafeCallMicrogrammar(beginningOfCall: string, endOfCall: string): Microgrammar<UnsafeCall> {
+    return Microgrammar.fromDefinitions<UnsafeCall>({
         beforeMethodCall: optional(lhsEquals()),
         invocation: Microgrammar.fromDefinitions<Invocation>({
             beginningOfCall,

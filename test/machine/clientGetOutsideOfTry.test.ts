@@ -1,7 +1,7 @@
 import { InMemoryProject } from "@atomist/automation-client";
 import { CodeTransform, TransformResult } from "@atomist/sdm";
 import * as assert from "assert";
-import { lhsEquals, target, tryFinally, wrapInTry } from "../../lib/machine/clientGetOutsideOfTry";
+import { lhsEquals, unsafeCallMicrogrammar, tryFinally, wrapInTry } from "../../lib/machine/clientGetOutsideOfTry";
 import { normalizeWhitespace } from "../normalizeWhitespace";
 
 const SomeRandomJavaFile = `package com.jessitron.hg;
@@ -253,7 +253,7 @@ describe("tryify", () => {
 
         it("should not match", () => {
             const input = "nothing to see here";
-            const mg = target("client.get", "yo");
+            const mg = unsafeCallMicrogrammar("client.get", "yo");
             assert.strictEqual(mg.findMatches(input).length, 0);
         });
 
@@ -262,7 +262,7 @@ describe("tryify", () => {
                                      .execute()
                                     .statusCode();
         return statusCode;`;
-            const mg = target("client.get", "statusCode()");
+            const mg = unsafeCallMicrogrammar("client.get", "statusCode()");
             const matches = mg.findMatches(input);
             assert.strictEqual(matches.length, 1);
             assert.strictEqual(matches[0].invocation.beginningOfCall, "client.get");
@@ -276,7 +276,7 @@ describe("tryify", () => {
                                      .execute()
                                     .statusCode();
         return statusCode;`;
-            const mg = target("client.get", "execute");
+            const mg = unsafeCallMicrogrammar("client.get", "execute");
             assert.strictEqual(mg.findMatches(input).length, 0);
         });
 
