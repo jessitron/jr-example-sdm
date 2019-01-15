@@ -17,6 +17,27 @@ export const DefaultIndentUnit = "   ";
  * @return {FormatPoint}
  */
 export function formatAt(s: string, offset: number): FormatPoint {
+    let indentUnit: string = determineIndentUnit(s);
+    const beforeOffset = s.substr(0, offset);
+    let lastLine = _.last(beforeOffset.split("\n").filter(s => s.trim().length > 0)) || "";
+    const depth = determineDepth(indentUnit, lastLine);
+    return {
+        indentUnit,
+        depth,
+    };
+}
+
+function determineDepth(indentUnit: string, line: string) {
+    let depth = 0;
+    var lastLine = line.slice();
+    while (lastLine.startsWith(indentUnit)) {
+        ++depth;
+        lastLine = lastLine.slice(indentUnit.length);
+    }
+    return depth;
+}
+
+function determineIndentUnit(s: string) {
     const lines = s.split("\n");
     let indentUnit: string;
     if (s.includes("\t")) {
@@ -33,16 +54,7 @@ export function formatAt(s: string, offset: number): FormatPoint {
             indentUnit = DefaultIndentUnit;
         }
     }
-    let depth = 0;
-    let lastLine = _.last(lines);
-    while (lastLine.startsWith(indentUnit)) {
-        ++depth;
-        lastLine = lastLine.slice(indentUnit.length);
-    }
-    return {
-        indentUnit,
-        depth,
-    };
+    return indentUnit;
 }
 
 /**
