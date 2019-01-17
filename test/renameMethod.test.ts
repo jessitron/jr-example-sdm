@@ -36,7 +36,6 @@ describe("renames a method", () => {
     });
 
     it("changes the method on a thing of the right type", async () => {
-
         const after = `public void foo(DefinerOfRenamedMethod something) { 
             something.${commonParams.newMethodName}();
     }`;
@@ -47,6 +46,15 @@ describe("renames a method", () => {
 
         assert(result.edited);
         assert.strictEqual(result.newMethodDefinition, after);
+    });
+
+
+    it("does not change the method on a thing of the wrong type", async () => {
+        const result = await transformJavaMethod(`public void foo(SomeOtherClassWithThatOldMethodName something) { 
+            something.${commonParams.oldMethodName}();
+    }`,
+            renameMethodTransform(commonParams));
+        assert(!result.edited);
     });
 });
 

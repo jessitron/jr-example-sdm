@@ -20,6 +20,7 @@ export function renameMethodTransform(opts: {
                     mc.$value = opts.newMethodName;
                 }
             }
+            console.log("Current contents of that file: " + fh.file.getContentSync());
         }
         return { edited, success: true, target: p };
     }

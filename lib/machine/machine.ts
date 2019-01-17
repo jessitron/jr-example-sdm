@@ -22,6 +22,7 @@ import {
     createSoftwareDeliveryMachine,
 } from "@atomist/sdm-core";
 import { closeAllClientResponses } from "./clientGetOutsideOfTry";
+import { renameMethodTransform } from "./renameMethod";
 
 /**
  * Initialize an sdm definition, and add functionality to it.
@@ -42,6 +43,18 @@ export function machine(
         transform: closeAllClientResponses,
         intent: "ensure responses are closed",
         description: "Ensure all calls to client.get() are wrapped in a try/finally block that closes the responses",
+    });
+
+    sdm.addCodeTransformCommand({
+        name: "renameOldMethod",
+        transform: renameMethodTransform({
+            oldMethodName: "oldMethodName",
+            globPatterns: "**/*.java",
+            newMethodName: "updatedMethodName",
+            className: "DefinerOfRenamedMethod"
+        }),
+        intent: "rename oldMethodName",
+        description: "Upgrade calls from DefinerOfRenamedMethod.oldMethodName->updatedMethodName",
     });
 
     return sdm;
