@@ -1,6 +1,6 @@
 import { InMemoryProject } from '@atomist/automation-client';
 import * as assert from "assert";
-import { renameMethodTransform, methodCallsGrammar } from '../lib/machine/renameMethod';
+import { renameMethodTransform, methodCallsGrammar, variableDeclarationGrammar } from '../lib/machine/renameMethod';
 import { TransformResult, CodeTransform } from '@atomist/sdm';
 
 const commonParams = { oldMethodName: "oldMethodName", newMethodName: "updatedMethodName" };
@@ -21,7 +21,7 @@ describe("renames a method", () => {
         assert(!result.edited);
     })
 
-    it("changes the method when it is called", async () => {
+    it("does not change the method when it is called on a different type", async () => {
         const result = await transformJavaMethod(`public void Foo() { 
             something.${commonParams.oldMethodName}();
     }`,
@@ -30,8 +30,20 @@ describe("renames a method", () => {
         assert(result.edited);
         assert.strictEqual(result.newMethodDefinition, `public void Foo() { 
             something.${commonParams.newMethodName}();
-    }`)
-    })
+    }`);
+    });
+
+    it("changes the method on a thing of the right type", async () => {
+        const result = await transformJavaMethod(`public void foo(DefinerOfRenamedMethod something) { 
+            something.${commonParams.oldMethodName}();
+    }`,
+            renameMethodTransform(commonParams))
+
+        assert(result.edited);
+        assert.strictEqual(result.newMethodDefinition, `public void foo(DefinerOfRenamedMethod something) { 
+            something.${commonParams.newMethodName}();
+    }`);
+    });
 });
 
 async function transformJavaMethod(methodDefinition: string, transform: CodeTransform): Promise<{
@@ -58,8 +70,6 @@ class Foo {
 
 // test the microgrammar
 describe("method calls", () => {
-
-
     it("should not match wrong name", () => {
         const input = "blah.somethingElse()";
         const mg = methodCallsGrammar("oldMethodName");
@@ -69,6 +79,20 @@ describe("method calls", () => {
     it("should match", () => {
         const input = "blah.oldMethodName()";
         const mg = methodCallsGrammar("oldMethodName");
+        assert.strictEqual(mg.findMatches(input).length, 1);
+    });
+});
+
+describe("variable declarations", () => {
+    it("should not match wrong name", () => {
+        const input = "method(Fizz booger)";
+        const mg = variableDeclarationGrammar("ClassOfInterest");
+        assert.strictEqual(mg.findMatches(input).length, 0);
+    });
+
+    it("should match", () => {
+        const input = "method(ClassOfInterest hello)";
+        const mg = variableDeclarationGrammar("ClassOfInterest");
         assert.strictEqual(mg.findMatches(input).length, 1);
     });
 });

@@ -47,3 +47,18 @@ export function methodCallsGrammar(methodName: string): Grammar<MethodCall> {
         }
     })
 }
+
+type VariableDeclaration = {
+    className: string,
+    variableName: string,
+}
+
+export function variableDeclarationGrammar(classOfInterest: string): Grammar<VariableDeclaration> {
+    return microgrammar<VariableDeclaration>({
+        phrase: "${className} ${variableName}",
+        terms: {
+            className: classOfInterest,
+            variableName: javaIdentifierPattern,
+        }
+    })
+}
