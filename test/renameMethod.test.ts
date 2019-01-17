@@ -7,6 +7,7 @@ const commonParams = {
     oldMethodName: "oldMethodName",
     newMethodName: "updatedMethodName",
     className: "DefinerOfRenamedMethod",
+    globPatterns: "**/*.java",
 };
 
 describe("renames a method", () => {
