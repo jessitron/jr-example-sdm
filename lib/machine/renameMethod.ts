@@ -1,21 +1,44 @@
 import { CodeTransform } from '@atomist/sdm';
-import { Project } from '@atomist/automation-client';
-import { microgrammar } from '@atomist/microgrammar';
+import { Project, astUtils } from '@atomist/automation-client';
+import { microgrammar, Grammar, Microgrammar } from '@atomist/microgrammar';
+import { MicrogrammarBasedFileParser } from '@atomist/automation-client/lib/tree/ast/microgrammar/MicrogrammarBasedFileParser';
 
 
-export function renameMethodTransform(params: { oldMethodName: string }): CodeTransform {
+export function renameMethodTransform(opts: {
+    globPatterns?: string,
+    oldMethodName: string
+}): CodeTransform {
     return async (p: Project) => {
 
+        const pathExpression = `//methodCall//methodName[@value='${opts.oldMethodName}']`;
+        const parseWith = new MicrogrammarBasedFileParser("match", "unsafeCall",
+            methodCallsGrammar(opts.oldMethodName) as Microgrammar<MethodCall>);
 
+        const oldMethodNames = astUtils.matchIterator(p, {
+            globPatterns: opts.globPatterns || "**/*.java",
+            pathExpression,
+            parseWith,
+        });
 
-        return { edited: false, success: true, target: p };
+        let edited = false;
+        for await (const mc of oldMethodNames) {
+            edited = true;
+            // mc.$value = "bananas";
+        }
+
+        return { edited, success: true, target: p };
     }
 }
 
 const javaIdentifierPattern = /[a-zA-Z_$][a-zA-Z0-9_$]*/;
 
-export function methodCalls(methodName: string) {
-    return microgrammar({
+type MethodCall = {
+    variable: string,
+    methodName: string,
+}
+
+export function methodCallsGrammar(methodName: string): Grammar<MethodCall> {
+    return microgrammar<MethodCall>({
         phrase: "${variable}.${methodName}(", terms:
         {
             variable: javaIdentifierPattern,
