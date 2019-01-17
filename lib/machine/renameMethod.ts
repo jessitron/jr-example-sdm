@@ -8,23 +8,43 @@ export function renameMethodTransform(opts: {
     globPatterns?: string,
     oldMethodName: string,
     newMethodName: string,
+    className: string,
 }): CodeTransform {
     return async (p: Project) => {
 
-        const pathExpression = `//methodCall//methodName[@value='${opts.oldMethodName}']`;
-        const parseWith = new MicrogrammarBasedFileParser("match", "methodCall",
-            methodCallsGrammar(opts.oldMethodName) as Microgrammar<MethodCall>);
+        const globPatterns = opts.globPatterns || "**/*.java";
 
-        const oldMethodNames = astUtils.matchIterator(p, {
-            globPatterns: opts.globPatterns || "**/*.java",
-            pathExpression,
-            parseWith,
-        });
+        const variableDeclarationsPathExpression = `//variableOfClass[/className[@value='${opts.className}']]/variableName`;
+        const variableDeclarationsParser = new MicrogrammarBasedFileParser("match", "variableOfClass",
+            variableDeclarationGrammar(opts.className) as Microgrammar<VariableDeclaration>);
+
+        const fileHits = await astUtils.findFileMatches(p,
+            variableDeclarationsParser,
+            globPatterns,
+            variableDeclarationsPathExpression
+        );
 
         let edited = false;
-        for await (const mc of oldMethodNames) {
-            edited = true;
-            mc.$value = opts.newMethodName;
+        for (const fh of fileHits) {
+            const variableNames = fh.matches.map(mr => mr.$value)
+
+            for (const v of variableNames) {
+                const pathExpression = `//methodCall[/variableName[@value='${v}']]/methodName[@value='${opts.oldMethodName}']`;
+                const parseWith = new MicrogrammarBasedFileParser("match", "methodCall",
+                    methodCallsGrammar(opts.oldMethodName) as Microgrammar<MethodCall>);
+
+                const oldMethodNames = astUtils.matchIterator(p, {
+                    globPatterns: fh.file.path,
+                    pathExpression,
+                    parseWith,
+                });
+
+                for await (const mc of oldMethodNames) {
+                    edited = true;
+                    console.log("Setting a match to new method name")
+                    mc.$value = opts.newMethodName;
+                }
+            }
         }
 
         return { edited, success: true, target: p };
@@ -34,15 +54,15 @@ export function renameMethodTransform(opts: {
 const javaIdentifierPattern = /[a-zA-Z_$][a-zA-Z0-9_$]*/;
 
 type MethodCall = {
-    variable: string,
+    variableName: string,
     methodName: string,
 }
 
 export function methodCallsGrammar(methodName: string): Grammar<MethodCall> {
     return microgrammar<MethodCall>({
-        phrase: "${variable}.${methodName}(", terms:
+        phrase: "${variableName}.${methodName}(", terms:
         {
-            variable: javaIdentifierPattern,
+            variableName: javaIdentifierPattern,
             methodName: methodName,
         }
     })
@@ -62,3 +82,4 @@ export function variableDeclarationGrammar(classOfInterest: string): Grammar<Var
         }
     })
 }
+

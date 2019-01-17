@@ -3,7 +3,11 @@ import * as assert from "assert";
 import { renameMethodTransform, methodCallsGrammar, variableDeclarationGrammar } from '../lib/machine/renameMethod';
 import { TransformResult, CodeTransform } from '@atomist/sdm';
 
-const commonParams = { oldMethodName: "oldMethodName", newMethodName: "updatedMethodName" };
+const commonParams = {
+    oldMethodName: "oldMethodName",
+    newMethodName: "updatedMethodName",
+    className: "DefinerOfRenamedMethod",
+};
 
 describe("renames a method", () => {
 
@@ -22,27 +26,26 @@ describe("renames a method", () => {
     })
 
     it("does not change the method when it is called on a different type", async () => {
-        const result = await transformJavaMethod(`public void Foo() { 
+        const result = await transformJavaMethod(`public void foo(Whatever something) { 
             something.${commonParams.oldMethodName}();
     }`,
             renameMethodTransform(commonParams))
 
-        assert(result.edited);
-        assert.strictEqual(result.newMethodDefinition, `public void Foo() { 
-            something.${commonParams.newMethodName}();
-    }`);
+        assert(!result.edited);
     });
 
     it("changes the method on a thing of the right type", async () => {
+
+        const after = `public void foo(DefinerOfRenamedMethod something) { 
+            something.${commonParams.newMethodName}();
+    }`;
         const result = await transformJavaMethod(`public void foo(DefinerOfRenamedMethod something) { 
             something.${commonParams.oldMethodName}();
     }`,
             renameMethodTransform(commonParams))
 
         assert(result.edited);
-        assert.strictEqual(result.newMethodDefinition, `public void foo(DefinerOfRenamedMethod something) { 
-            something.${commonParams.newMethodName}();
-    }`);
+        assert.strictEqual(result.newMethodDefinition, after);
     });
 });
 
