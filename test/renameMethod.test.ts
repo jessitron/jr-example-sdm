@@ -1,9 +1,9 @@
-import { InMemoryProject, Project } from '@atomist/automation-client';
+import { InMemoryProject } from '@atomist/automation-client';
 import * as assert from "assert";
-import { renameMethodTransform, methodCalls } from '../lib/machine/renameMethod';
+import { renameMethodTransform, methodCallsGrammar } from '../lib/machine/renameMethod';
 import { TransformResult, CodeTransform } from '@atomist/sdm';
 
-const commonParams = { oldMethodName: "oldMethodName" };
+const commonParams = { oldMethodName: "oldMethodName", newMethodName: "updatedMethodName" };
 
 describe("renames a method", () => {
 
@@ -21,13 +21,16 @@ describe("renames a method", () => {
         assert(!result.edited);
     })
 
-    it.skip("changes the method when it is called", async () => {
+    it("changes the method when it is called", async () => {
         const result = await transformJavaMethod(`public void Foo() { 
             something.${commonParams.oldMethodName}();
     }`,
             renameMethodTransform(commonParams))
 
         assert(result.edited);
+        assert.strictEqual(result.newMethodDefinition, `public void Foo() { 
+            something.${commonParams.newMethodName}();
+    }`)
     })
 });
 
@@ -59,13 +62,13 @@ describe("method calls", () => {
 
     it("should not match wrong name", () => {
         const input = "blah.somethingElse()";
-        const mg = methodCalls("oldMethodName");
+        const mg = methodCallsGrammar("oldMethodName");
         assert.strictEqual(mg.findMatches(input).length, 0);
     });
 
     it("should match", () => {
         const input = "blah.oldMethodName()";
-        const mg = methodCalls("oldMethodName");
+        const mg = methodCallsGrammar("oldMethodName");
         assert.strictEqual(mg.findMatches(input).length, 1);
     });
 });

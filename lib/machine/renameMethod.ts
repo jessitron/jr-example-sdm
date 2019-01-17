@@ -6,12 +6,13 @@ import { MicrogrammarBasedFileParser } from '@atomist/automation-client/lib/tree
 
 export function renameMethodTransform(opts: {
     globPatterns?: string,
-    oldMethodName: string
+    oldMethodName: string,
+    newMethodName: string,
 }): CodeTransform {
     return async (p: Project) => {
 
         const pathExpression = `//methodCall//methodName[@value='${opts.oldMethodName}']`;
-        const parseWith = new MicrogrammarBasedFileParser("match", "unsafeCall",
+        const parseWith = new MicrogrammarBasedFileParser("match", "methodCall",
             methodCallsGrammar(opts.oldMethodName) as Microgrammar<MethodCall>);
 
         const oldMethodNames = astUtils.matchIterator(p, {
@@ -23,7 +24,7 @@ export function renameMethodTransform(opts: {
         let edited = false;
         for await (const mc of oldMethodNames) {
             edited = true;
-            // mc.$value = "bananas";
+            mc.$value = opts.newMethodName;
         }
 
         return { edited, success: true, target: p };
