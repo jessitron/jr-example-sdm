@@ -16,14 +16,14 @@ export function renameMethodTransform(opts: {
             for (const variableName of fh.matches.map(mr => mr.$value)) {
                 for await (const mc of matchMethodCalls(p, fh.file.path, { oldMethodName, variableName })) {
                     edited = true;
-                    console.log("Setting a match to new method name")
+                    console.log(`Setting a match to new method name '${opts.newMethodName}', old value='${mc.$value}'`)
                     mc.$value = opts.newMethodName;
                 }
             }
             console.log("Current contents of that file: " + fh.file.getContentSync());
         }
         return { edited, success: true, target: p };
-    }
+    };
 }
 
 const javaIdentifierPattern = /[a-zA-Z_$][a-zA-Z0-9_$]*/;
@@ -51,7 +51,7 @@ function matchMethodCalls(p: Project, path: string, opts: {
     [/variableName[@value='${opts.variableName}']]
     /methodName[@value='${opts.oldMethodName}']`;
     const parseWith = new MicrogrammarBasedFileParser("match", "methodCall",
-        methodCallsGrammar(opts.oldMethodName) as Microgrammar<MethodCall>);
+        methodCallsGrammar(opts.oldMethodName));
 
     return astUtils.matchIterator(p, {
         globPatterns: path,
@@ -60,9 +60,9 @@ function matchMethodCalls(p: Project, path: string, opts: {
     });
 }
 
-type VariableDeclaration = {
-    className: string,
-    variableName: string,
+interface VariableDeclaration {
+    className: string;
+    variableName: string;
 }
 
 export function variableDeclarationGrammar(classOfInterest: string): Grammar<VariableDeclaration> {
@@ -71,8 +71,8 @@ export function variableDeclarationGrammar(classOfInterest: string): Grammar<Var
         terms: {
             className: classOfInterest,
             variableName: javaIdentifierPattern,
-        }
-    })
+        },
+    });
 }
 
 async function variableDeclarationFileHits(p: Project, opts: { globPatterns: string, className: string }) {
@@ -80,11 +80,11 @@ async function variableDeclarationFileHits(p: Project, opts: { globPatterns: str
     [/className[@value='${opts.className}']]
     /variableName`;
     const variableDeclarationsParser = new MicrogrammarBasedFileParser("match", "variableOfClass",
-        variableDeclarationGrammar(opts.className) as Microgrammar<VariableDeclaration>);
+        variableDeclarationGrammar(opts.className));
 
     return astUtils.findFileMatches(p,
         variableDeclarationsParser,
         opts.globPatterns,
-        variableDeclarationsPathExpression
+        variableDeclarationsPathExpression,
     );
 }

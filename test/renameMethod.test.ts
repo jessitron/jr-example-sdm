@@ -42,7 +42,7 @@ describe("renames a method", () => {
         const result = await transformJavaMethod(`public void foo(DefinerOfRenamedMethod something) { 
             something.${commonParams.oldMethodName}();
     }`,
-            renameMethodTransform(commonParams))
+            renameMethodTransform(commonParams));
 
         assert(result.edited);
         assert.strictEqual(result.newMethodDefinition, after);
@@ -60,7 +60,7 @@ describe("renames a method", () => {
 
 async function transformJavaMethod(methodDefinition: string, transform: CodeTransform): Promise<{
     edited: boolean,
-    newMethodDefinition: string
+    newMethodDefinition: string,
 }> {
     const prefix = `package la.la.la;
 
